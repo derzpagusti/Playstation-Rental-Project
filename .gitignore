@@ -1,5 +1,8 @@
 .env
 .env.*
 !.env.example
-backend/public/uploads/*
-!backend/public/uploads/.gitkeep
+Backend/uploads/*
+!Backend/uploads/.gitkeep
+
+.DS_Store
+*.log
