@@ -6,3 +6,5 @@ Backend/uploads/*
 
 .DS_Store
 *.log
+
+.idea
