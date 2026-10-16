@@ -1,6 +1,6 @@
 CREATE TABLE rental_item_check
 (
-    check_id            INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    check_id            SERIAL PRIMARY KEY,
     rental_id           INT         NOT NULL REFERENCES rental (rental_id) ON DELETE CASCADE,
     item_name           VARCHAR(50) NOT NULL,
     condition_at_pickup VARCHAR(20),

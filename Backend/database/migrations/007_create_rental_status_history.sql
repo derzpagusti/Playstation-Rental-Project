@@ -1,6 +1,6 @@
 CREATE TABLE rental_status_history
 (
-    history_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    history_id SERIAL PRIMARY KEY,
     rental_id  INT         NOT NULL REFERENCES rental (rental_id) ON DELETE CASCADE,
     old_status VARCHAR(20),
     new_status VARCHAR(20) NOT NULL,
@@ -9,4 +9,4 @@ CREATE TABLE rental_status_history
     note       VARCHAR(255)
 );
 
-CREATE INDEX idx_history_rental  ON rental_status_history(rental_id);
+CREATE INDEX idx_history_rental ON rental_status_history (rental_id);

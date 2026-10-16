@@ -1,10 +1,7 @@
--- Akun customer bersifat opsional (hybrid):
---   password_hash NULL     = customer tamu (booking tanpa akun)
---   password_hash terisi   = customer yang sudah sign up
--- Nomor HP tetap identitas utama dan wajib unik.
+-- password_hash NULL = customer tamu, terisi = sudah sign up
 CREATE TABLE customer
 (
-    customer_id           INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    customer_id           SERIAL PRIMARY KEY,
     full_name             VARCHAR(100) NOT NULL,
     phone                 VARCHAR(20)  NOT NULL UNIQUE,
     email                 VARCHAR(100),
@@ -15,5 +12,6 @@ CREATE TABLE customer
     identity_doc_verified BOOLEAN      NOT NULL DEFAULT FALSE
 );
 
-CREATE UNIQUE INDEX uq_customer_email_lower
-    ON customer (lower(email)) WHERE email IS NOT NULL;
+-- Email tidak boleh ganda tanpa membedakan huruf besar/kecil.
+-- Banyak customer tanpa email (NULL) tetap diperbolehkan.
+CREATE UNIQUE INDEX uq_customer_email_lower ON customer (lower(email));

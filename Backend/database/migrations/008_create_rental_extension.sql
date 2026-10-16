@@ -1,6 +1,6 @@
 CREATE TABLE rental_extension
 (
-    extension_id   INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    extension_id   SERIAL PRIMARY KEY,
     rental_id      INT            NOT NULL REFERENCES rental (rental_id) ON DELETE CASCADE,
     staff_id       INT            NOT NULL REFERENCES staff (staff_id),
     added_hours    INT            NOT NULL CHECK (added_hours >= 1),
