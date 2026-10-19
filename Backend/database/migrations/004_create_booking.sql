@@ -1,12 +1,13 @@
 -- Satu pesanan (transaksi) yang bisa berisi banyak device.
--- Menyimpan data yang berlaku untuk seluruh pesanan: kode, customer, pembayaran.
+-- customer_id harus user ber-role 'customer' dan staff_id harus
+-- ber-role 'admin'/'owner'; pengecekannya dilakukan di backend.
 CREATE TABLE booking
 (
     booking_id          SERIAL PRIMARY KEY,
     booking_code        VARCHAR(8)  NOT NULL UNIQUE
                                              DEFAULT upper(substr(md5(random()::text || clock_timestamp()::text), 1, 8)),
-    customer_id         INT         NOT NULL REFERENCES customer (customer_id),
-    staff_id            INT REFERENCES staff (staff_id), -- NULL = belum diverifikasi
+    customer_id         INT         NOT NULL REFERENCES users (user_id),
+    staff_id            INT REFERENCES users (user_id), -- NULL = belum diverifikasi
     booking_channel     VARCHAR(20) NOT NULL DEFAULT 'Online'
         CHECK (booking_channel IN ('Online', 'Walk-in', 'WhatsApp')),
     created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
