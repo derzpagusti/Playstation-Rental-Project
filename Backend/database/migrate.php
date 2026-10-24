@@ -4,7 +4,8 @@ if (PHP_SAPI !== 'cli') {
     exit('Script ini hanya boleh dijalankan dari terminal.');
 }
 
-require __DIR__ . '/../includes/db.php';   // membaca .env dan menghasilkan $pdo
+require __DIR__ . '/../includes/db.php'; // membaca .env dan menghasilkan $pdo
+/** @var PDO $pdo */
 
 // Tabel untuk pencatat file yang sudah dijalankan, supaya tidak jalan dua kali
 function ensure_tracking_table(PDO $pdo): void {
