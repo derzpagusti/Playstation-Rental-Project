@@ -1,7 +1,6 @@
 <?php
 
-require __DIR__ . '/../../../includes/response.php';
-require __DIR__ . '/../../../includes/db.php';
+require __DIR__ . '/../../../includes/bootstrap.php';
 /** @var PDO $pdo */
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
