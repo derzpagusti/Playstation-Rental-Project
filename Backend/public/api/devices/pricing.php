@@ -1,8 +1,6 @@
 <?php
 
-require __DIR__ . '/../../../includes/response.php';
-require __DIR__ . '/../../../includes/db.php';
-
+require __DIR__ . '/../../../includes/bootstrap.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     json_error('METHOD_NOT_ALLOWED', 'Method HTTP tidak diizinkan. Gunakan method GET', 405);
