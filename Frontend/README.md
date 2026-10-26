@@ -1,16 +1,34 @@
 # NovaPS Frontend Demo
 
-A standalone HTML, CSS and JavaScript prototype styled to match the supplied NovaPS home and login references. The interface works without the backend.
+Static HTML, CSS, and JavaScript pages for the NovaPS PlayStation rental prototype. The frontend runs without the backend and saves demo accounts and orders in this browser localStorage.
 
-## Run
+## Open in VS Code
 
-Open `Frontend/index.html` in VS Code and use Live Server, or open the file in a browser. Tailwind CSS is available from its browser CDN; the custom page styling is in `src/styles.css` and all interactions are in `src/app.js`.
+Open the Frontend folder in VS Code and start index.html with Live Server. The HTML files can also be opened directly in a browser.
 
-## Demo pages
+## Pages
 
-- Home landing page with benefit cards, three ordering steps, unit prices and booking calls to action.
-- Login and sign-up pages. Login accepts any valid email and non-empty password; no server authentication is used.
-- Unit list, booking form, confirmation with booking code, and booking status lookup by code and phone.
-- PS3 / PS4 units and 6, 12, or 24-hour rental durations.
+- index.html — Home page.
+- login.html — Demo login; any valid email and non-empty password are accepted.
+- signup.html — Demo registration with password checks and ID image selection.
+- change-password.html — Change a locally registered demo account password.
+- units.html — PS4 and PS5 prices, availability, and game lists.
+- booking.html — Customer info, ID card selection, one or two rental units, durations, notes, and checkout.
+- payment-confirmation.html — Demo QRIS screen, order summary, timer, and payment submission.
+- confirmation.html — Payment-received summary with links to Home and Booking Status.
+- booking-status.html — Empty state or locally saved booking cards and details.
+- account-info.html — View demo account details.
+- account-edit.html — Edit and save profile details in browser storage.
 
-Demo accounts, bookings, and unit availability are saved in this browser using `localStorage`. A payment proof file may be selected, but is not uploaded or processed. Reset the demo by clearing site data for the local page.
+## Code organization
+
+- assets/css/shared.css holds shared styling.
+- assets/css/<page>.css contains page-specific styles.
+- assets/js/common.js holds shared storage helpers and the unit catalog.
+- assets/js/<page>.js contains page-specific behavior.
+
+The booking flow is booking.html → payment-confirmation.html → confirmation.html → booking-status.html. Every page imports shared assets and its own CSS and JavaScript. The older src/app.js and src/styles.css files are not loaded by the separate pages.
+
+## Demo limits
+
+There is no backend authentication, file upload, or payment processing. The QRIS graphic is decorative, and proof images are not uploaded; the demo stores selected file names only.

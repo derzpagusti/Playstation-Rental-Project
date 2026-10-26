@@ -1,16 +1,184 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#101729">
-  <title>NovaPS — PlayStation Rental</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="./src/styles.css">
-</head>
-<body>
-  <div id="app"></div>
-  <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <script src="./src/app.js"></script>
-</body>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#101729">
+    <title>
+      NovaPS — PlayStation Rental
+    </title>
+    <link
+      rel="preconnect"
+      href="https://fonts.googleapis.com"
+    >
+    <link
+      rel="preconnect"
+      href="https://fonts.gstatic.com"
+      crossorigin
+    >
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    >
+    <link
+      rel="stylesheet"
+      href="./assets/css/shared.css"
+    >
+    <link
+      rel="stylesheet"
+      href="./assets/css/home.css"
+    >
+    <script
+      defer
+      src="./assets/js/common.js"
+    >
+    </script>
+    <script
+      defer
+      src="./assets/js/home.js"
+    >
+    </script>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="nav-wrap">
+        <a class="brand" href="./index.html">
+          <span class="brand-mark">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <rect x="2.5" y="5" width="19" height="14" rx="3" stroke="currentColor" stroke-width="1.8" />
+              <path d="M7 12h5M9.5 9.5v5M16.5 10.5h.01M18.5 13h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+            </svg>
+          </span>
+          <span>Nova<span class="brand-accent">PS</span></span>
+        </a>
+        <nav class="main-nav">
+          <a href="./index.html">Home</a><a href="./units.html">Unit</a><a href="./booking-status.html">Booking Status</a>
+        </nav>
+        <div class="nav-actions">
+          <a class="btn btn-outline" href="./login.html">Login</a><a class="btn btn-cyan" href="./units.html">Order Now</a>
+        </div>
+      </div>
+    </header>
+    <main>
+      <section class="hero">
+        <div class="hero-inner">
+          <h1>
+            Rent your PS now,<br>And Enjoy the Game!
+          </h1>
+          <p>
+            NovaPS is a PlayStation rental shop that offers PS4 and PS5 consoles and<br class="desktop-break"> has a large selection of games you can play with friends.
+          </p>
+          <div class="hero-actions">
+            <a class="btn btn-cyan btn-large" href="./units.html">Order Now</a><a class="btn btn-outline btn-large" href="#how-to-order">How to order</a>
+          </div>
+        </div>
+      </section>
+      <section class="benefits">
+        <div class="section-inner">
+          <h2 class="section-title">
+            Why choose us?
+          </h2>
+          <div class="benefit-grid">
+            <article class="benefit-card">
+              <span class="benefit-icon">◷</span><strong>Booking 24/7</strong>
+            </article>
+            <article class="benefit-card">
+              <span class="benefit-icon">⌘</span><strong>A large collection<br>of games</strong>
+            </article>
+            <article class="benefit-card">
+              <span class="benefit-icon">♧</span><strong>Free Shipping</strong>
+            </article>
+            <article class="benefit-card">
+              <span class="benefit-icon">▦</span><strong>Payment via QRIS</strong>
+            </article>
+          </div>
+        </div>
+      </section>
+      <section id="how-to-order" class="how-section">
+        <div class="section-inner">
+          <h2 class="section-title">
+            3 Easy Step Order
+          </h2>
+          <div class="steps">
+            <div>
+              <span class="step-num">1</span>
+              <div class="step-text">
+                Select a Unit<br>&amp; Schedule
+              </div>
+            </div>
+            <span class="step-arrow">⟶</span>
+            <div>
+              <span class="step-num">2</span>
+              <div class="step-text">
+                Fill the Form &amp; Pay
+              </div>
+            </div>
+            <span class="step-arrow">⟶</span>
+            <div>
+              <span class="step-num">3</span>
+              <div class="step-text">
+                The PS will be<br>delivered
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section class="home-units">
+        <div class="section-inner">
+          <h2 class="section-title units-title">
+            Unit Options &amp; Prices
+          </h2>
+          <div class="unit-grid" data-unit-preview>
+          </div>
+          <div class="preview-link">
+            <a href="./units.html">See all games and unit details →</a>
+          </div>
+        </div>
+      </section>
+      <section class="cta">
+        <div class="section-inner">
+          <h2>
+            Ready to play? Book Now!
+          </h2>
+          <a href="./units.html" class="btn btn-white">Order Now</a>
+        </div>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <div>
+          <h3>
+            NovaPS
+          </h3>
+          <p>
+            PlayStation rental shop that offers PS4 and PS5 consoles and has a large selection of games you can play with friends.
+          </p>
+        </div>
+        <div>
+          <h3>
+            Quick Link
+          </h3>
+          <a href="./index.html">Home</a><a href="./units.html">Unit Options</a><a href="./booking-status.html">Booking Status</a>
+        </div>
+        <div>
+          <h3>
+            Contact Us
+          </h3>
+          <p>
+            WA: +62 812-3347-1034<br>Time: 10:00 a.m. - 10:00 p.m.
+          </p>
+        </div>
+        <div class="copyright">
+          © 2026 PS Rental. All rights reserved.
+        </div>
+      </div>
+    </footer>
+    <div id="toast" class="toast" role="status" aria-live="polite">
+    </div>
+  </body>
 </html>
+
+
+
+
+

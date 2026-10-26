@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101729">
+  <title>Order Form — NovaPS</title>
+  <link
+    rel="preconnect"
+    href="https://fonts.googleapis.com"
+  >
+  <link
+    rel="preconnect"
+    href="https://fonts.gstatic.com"
+    crossorigin
+  >
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  >
+  <link
+    rel="stylesheet"
+    href="./assets/css/shared.css"
+  >
+  <link
+    rel="stylesheet"
+    href="./assets/css/profile.css"
+  >
+  <link
+    rel="stylesheet"
+    href="./assets/css/booking.css"
+  >
+  <script
+    defer
+    src="./assets/js/common.js"
+  ></script>
+  <script
+    defer
+    src="./assets/js/booking.js"
+  ></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="profile-nav">
+      <a class="brand" href="./index.html">
+        <span class="brand-mark">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <rect x="2.5" y="5" width="19" height="14" rx="3" stroke="currentColor" stroke-width="1.8" />
+            <path d="M7 12h5M9.5 9.5v5M16.5 10.5h.01M18.5 13h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+          </svg>
+        </span>
+        <span>Nova<span class="brand-accent">PS</span></span>
+      </a>
+      <nav class="profile-tools" aria-label="Account navigation">
+        <a href="./booking-status.html" aria-label="Time remaining" title="Time remaining">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 3" /></svg>
+        </a>
+        <a href="./booking-status.html" aria-label="Bookings" title="Bookings">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="3" width="16" height="19" rx="2" /><path d="M9 3V2h6v1M8 9h8M8 13h8M8 17h5" /></svg>
+        </a>
+        <a href="./account-info.html" aria-label="My profile" title="My profile">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></svg>
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="order-page">
+    <div class="order-wrap">
+      <a class="order-back" href="./index.html">← Back to Home</a>
+      <h1 class="order-title">Order Form</h1>
+      <form data-order-form>
+        <section class="order-card customer-card">
+          <h2>Customer Information</h2>
+          <div class="customer-fields">
+            <label class="form-field">Full Name<input name="name" autocomplete="name" required></label>
+            <label class="form-field">Phone Number (WA)<input name="phone" type="tel" autocomplete="tel" required></label>
+            <label class="form-field">Address<input name="address" autocomplete="street-address" required></label>
+            <label class="form-field">Email<input name="email" type="email" autocomplete="email" required></label>
+            <div class="form-field id-photo-field">
+              <span>ID Card Photo</span>
+              <label class="order-upload">
+                <input name="idCard" type="file" accept="image/*" required>
+                <svg viewBox="0 0 32 28" fill="none" aria-hidden="true">
+                  <rect x="3" y="3" width="26" height="22" rx="2" />
+                  <circle cx="21" cy="10" r="2" />
+                  <path d="m5 22 8-8 6 6 3-3 6 6" />
+                </svg>
+              </label>
+              <span class="field-hint" data-id-hint>Choose an image of your ID card</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="order-card rental-card">
+          <h2>Rental Details</h2>
+          <div class="rental-units" data-rental-units></div>
+          <button class="add-unit-button" type="button" data-add-unit>
+            <span aria-hidden="true">＋</span>
+            <small>Add Unit #2</small>
+          </button>
+          <label class="form-field notes-field">Additional Notes<textarea name="notes" rows="2"></textarea></label>
+        </section>
+
+        <p class="order-error" data-order-error aria-live="polite"></p>
+        <div class="order-actions">
+          <a class="btn btn-cancel" href="./index.html">Back to home</a>
+          <button class="btn btn-purple checkout-button" type="submit" disabled>Checkout</button>
+        </div>
+      </form>
+    </div>
+  </main>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
+

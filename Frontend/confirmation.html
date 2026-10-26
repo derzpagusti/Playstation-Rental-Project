@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101729">
+  <title>Order Confirmation — NovaPS</title>
+  <link
+    rel="preconnect"
+    href="https://fonts.googleapis.com"
+  >
+  <link
+    rel="preconnect"
+    href="https://fonts.gstatic.com"
+    crossorigin
+  >
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  >
+  <link
+    rel="stylesheet"
+    href="./assets/css/shared.css"
+  >
+  <link
+    rel="stylesheet"
+    href="./assets/css/profile.css"
+  >
+  <link
+    rel="stylesheet"
+    href="./assets/css/confirmation.css"
+  >
+  <script
+    defer
+    src="./assets/js/common.js"
+  ></script>
+  <script
+    defer
+    src="./assets/js/confirmation.js"
+  ></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="profile-nav">
+      <a class="brand" href="./index.html">
+        <span class="brand-mark">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <rect x="2.5" y="5" width="19" height="14" rx="3" stroke="currentColor" stroke-width="1.8" />
+            <path d="M7 12h5M9.5 9.5v5M16.5 10.5h.01M18.5 13h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+          </svg>
+        </span>
+        <span>Nova<span class="brand-accent">PS</span></span>
+      </a>
+      <nav class="profile-tools" aria-label="Account navigation">
+        <a href="./booking-status.html" aria-label="Time remaining" title="Time remaining">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 3" /></svg>
+        </a>
+        <a href="./booking-status.html" aria-label="Bookings" title="Bookings">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="3" width="16" height="19" rx="2" /><path d="M9 3V2h6v1M8 9h8M8 13h8M8 17h5" /></svg>
+        </a>
+        <a href="./account-info.html" aria-label="My profile" title="My profile">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></svg>
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="confirmation-page">
+    <section class="confirmation-card">
+      <div class="success-mark" aria-hidden="true">
+        <svg viewBox="0 0 128 112" fill="none">
+          <path d="M64 3c11 0 17 10 27 10s18 5 19 18 13 17 13 29-10 17-10 27-6 18-19 19-17 13-30 13-17-10-27-10-18-5-19-18S5 74 5 62s10-17 10-27 6-18 19-19S51 3 64 3Z" fill="#DDFCEB" stroke="#10B957" stroke-width="1.5" />
+          <path d="m42 59 13 12 29-27" stroke="#10B957" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </div>
+      <h1>Your Payment Is Complete!</h1>
+      <p class="confirmation-lead">Thank you. We have received your order,<br>and it is awaiting admin verification.</p>
+      <dl class="confirmation-details">
+        <div><dt>Status</dt><dd class="pending-status">Pending</dd></div>
+        <div><dt>Customer</dt><dd data-confirm="customer"></dd></div>
+        <div><dt>Address</dt><dd data-confirm="address"></dd></div>
+        <div><dt>Unit</dt><dd data-confirm="unit"></dd></div>
+        <div><dt>Duration</dt><dd data-confirm="duration"></dd></div>
+        <div class="confirmation-total"><dt>Total</dt><dd data-confirm="total"></dd></div>
+      </dl>
+      <p class="confirmation-note">Please check your order status to see the<br>status of your order</p>
+      <div class="confirmation-actions">
+        <a class="btn confirmation-home" href="./index.html">Back to the home page</a>
+        <a class="btn btn-purple" href="./booking-status.html">To Order Status</a>
+      </div>
+    </section>
+  </main>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
+

@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101729">
+  <title>Payment Confirmation — NovaPS</title>
+  <link
+    rel="preconnect"
+    href="https://fonts.googleapis.com"
+  >
+  <link
+    rel="preconnect"
+    href="https://fonts.gstatic.com"
+    crossorigin
+  >
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  >
+  <link
+    rel="stylesheet"
+    href="./assets/css/shared.css"
+  >
+  <link
+    rel="stylesheet"
+    href="./assets/css/profile.css"
+  >
+  <link
+    rel="stylesheet"
+    href="./assets/css/payment.css"
+  >
+  <script
+    defer
+    src="./assets/js/common.js"
+  ></script>
+  <script
+    defer
+    src="./assets/js/payment.js"
+  ></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="profile-nav">
+      <a class="brand" href="./index.html">
+        <span class="brand-mark">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <rect x="2.5" y="5" width="19" height="14" rx="3" stroke="currentColor" stroke-width="1.8" />
+            <path d="M7 12h5M9.5 9.5v5M16.5 10.5h.01M18.5 13h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+          </svg>
+        </span>
+        <span>Nova<span class="brand-accent">PS</span></span>
+      </a>
+      <nav class="profile-tools" aria-label="Account navigation">
+        <a href="./booking-status.html" aria-label="Time remaining" title="Time remaining">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 3" /></svg>
+        </a>
+        <a href="./booking-status.html" aria-label="Bookings" title="Bookings">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="3" width="16" height="19" rx="2" /><path d="M9 3V2h6v1M8 9h8M8 13h8M8 17h5" /></svg>
+        </a>
+        <a href="./account-info.html" aria-label="My profile" title="My profile">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></svg>
+        </a>
+      </nav>
+    </div>
+  </header>
+  <main class="payment-page">
+    <div class="payment-wrap">
+      <a class="order-back" href="./index.html">← Back to Home</a>
+      <h1 class="order-title">Payment Confirmation</h1>
+      <div class="payment-layout">
+        <section class="payment-card qris-card">
+          <h2>Scan Qris</h2>
+          <strong class="payment-timer" data-timer>05:00</strong>
+          <p class="payment-hint" data-timer-hint>Please pay before time runs out</p>
+          <div class="qris-provider">
+            <strong>QRIS</strong>
+            <small>QR Code Standard<br>Payment Nasional</small>
+            <span>GPN</span>
+          </div>
+          <div class="qr-holder" aria-label="Decorative demo QR code">
+            <div class="qr-grid" data-qr aria-hidden="true"></div>
+            <span>DEMO</span>
+          </div>
+          <h2 class="payment-amount" data-payment-total>Rp 0</h2>
+          <p class="payment-hint">Open your e-wallet or banking app, scan the code,<br>and then pay the total amount.</p>
+          <label class="form-field proof-label">Proof of Payment
+            <span class="proof-upload">
+              <input type="file" accept="image/*" data-proof-input>
+              <svg viewBox="0 0 32 28" fill="none" aria-hidden="true">
+                <rect x="3" y="3" width="26" height="22" rx="2" />
+                <circle cx="21" cy="10" r="2" />
+                <path d="m5 22 8-8 6 6 3-3 6 6" />
+              </svg>
+            </span>
+            <small class="proof-file" data-proof-name></small>
+          </label>
+        </section>
+        <section class="payment-card summary-card">
+          <h2>Order Summary</h2>
+          <dl class="summary-list">
+            <div><dt>Customer</dt><dd data-summary="customer"></dd></div>
+            <div><dt>Unit</dt><dd data-summary="unit"></dd></div>
+            <div><dt>Address</dt><dd data-summary="address"></dd></div>
+            <div><dt>Duration</dt><dd data-summary="duration"></dd></div>
+            <div class="summary-total"><dt>Total</dt><dd data-summary="total"></dd></div>
+          </dl>
+        </section>
+      </div>
+      <div class="payment-actions">
+        <button class="btn cancel-order" type="button" data-cancel-order>Cancel Order</button>
+        <button class="btn btn-purple send-payment" type="button" data-send-payment disabled>Send payment</button>
+      </div>
+      <p class="demo-payment-note">Demo only: no QR payment is processed and no proof image is uploaded.</p>
+    </div>
+  </main>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
+

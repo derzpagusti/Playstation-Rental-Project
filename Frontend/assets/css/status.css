@@ -1,0 +1,123 @@
+.status-page {
+  min-height: calc(100vh - 68px);
+  padding: 50px 18px 70px;
+  background: #f7f9fc;
+}
+.status-page>h1 {
+  margin: 0 0 57px;
+  text-align: center;
+  color: #050505;
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -.6px;
+}
+.status-content {
+  width: min(640px,100%);
+  margin: auto;
+}
+.status-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.status-card {
+  min-height: 141px;
+  padding: 28px 24px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #fff;
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+}
+.status-card h2 {
+  margin: 0;
+  font-size: 16px;
+}
+.status-card p {
+  margin: 2px 0;
+  color: #71839e;
+  font-size: 12px;
+}
+.status-card .status-side {
+  display: flex;
+  align-items: flex-end;
+  flex-direction: column;
+  gap: 32px;
+}
+.status-label {
+  font-size: 16px;
+}
+.status-label.pending {
+  color: #795700;
+}
+.status-label.shipping {
+  color: #1745d2;
+}
+.status-label.done {
+  color: #087b34;
+}
+.detail-btn {
+  padding: 4px 9px;
+  border: 1px solid #293448;
+  border-radius: 9px;
+  background: white;
+  color: #273246;
+  text-decoration: none;
+}
+.again-btn {
+  padding: 5px 10px;
+  border-radius: 9px;
+  background: var(--purple);
+  color: #fff;
+  text-decoration: none;
+}
+.empty-state {
+  text-align: center;
+  color: #657995;
+}
+.empty-state p {
+  margin: 0 0 19px;
+  font-size: 24px;
+}
+.empty-state .btn {
+  min-height: 48px;
+  padding: 0 24px;
+  font-size: 20px;
+}
+.booking-details {
+  grid-column: 1/-1;
+  margin-top: 4px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  color: #52647a;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.status-card.expanded {
+  flex-wrap: wrap;
+}
+.status-card-main {
+  flex: 1;
+}
+@media(max-width:520px) {
+  .status-page {
+    padding-top: 38px;
+  }
+  .status-page>h1 {
+    margin-bottom: 35px;
+    font-size: 28px;
+  }
+  .status-card {
+    padding: 20px 16px;
+    min-height: 120px;
+  }
+  .status-card .status-side {
+    gap: 22px;
+  }
+  .empty-state p {
+    font-size: 19px;
+  }
+}
+
+

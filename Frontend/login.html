@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#101729">
+    <title>
+      Login — NovaPS
+    </title>
+    <link
+      rel="preconnect"
+      href="https://fonts.googleapis.com"
+    >
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    >
+    <link
+      rel="stylesheet"
+      href="./assets/css/shared.css"
+    >
+    <link
+      rel="stylesheet"
+      href="./assets/css/auth.css"
+    >
+    <script
+      defer
+      src="./assets/js/common.js"
+    >
+    </script>
+    <script
+      defer
+      src="./assets/js/auth.js"
+    >
+    </script>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="nav-wrap">
+        <a class="brand" href="./index.html">
+          <span class="brand-mark">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <rect x="2.5" y="5" width="19" height="14" rx="3" stroke="currentColor" stroke-width="1.8" />
+              <path d="M7 12h5M9.5 9.5v5M16.5 10.5h.01M18.5 13h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+            </svg>
+          </span>
+          <span>Nova<span class="brand-accent">PS</span></span>
+        </a>
+        <div class="nav-actions">
+          <a class="btn btn-outline" href="./signup.html">Sign Up</a>
+        </div>
+      </div>
+    </header>
+    <main class="auth-main">
+      <div class="auth-wrap">
+        <a class="back-link" href="./index.html">← Back to Home</a>
+        <section class="auth-card">
+          <h1>
+            Login
+          </h1>
+          <p class="auth-subtitle">
+            Log in to rent and track<br>your order status
+          </p>
+          <form data-auth="login">
+            <label class="form-field">
+              Email<input name="email" type="email" autocomplete="email" required>
+            </label>
+            <label class="form-field">
+              Password<input name="password" type="password" autocomplete="current-password" required>
+            </label>
+            <p class="form-error" aria-live="polite">
+            </p>
+            <button class="btn btn-purple auth-submit">
+              Login
+            </button>
+          </form>
+          <div class="auth-links">
+            <p>
+              Forgot your password? <a href="./change-password.html">Change Password</a>
+            </p>
+            <p>
+              Doesn’t have account? <a href="./signup.html">Sign Up</a>
+            </p>
+          </div>
+        </section>
+      </div>
+    </main>
+    <div id="toast" class="toast" role="status" aria-live="polite">
+    </div>
+  </body>
+</html>
+
+
+
+
+
