@@ -7,12 +7,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     json_error('METHOD_NOT_ALLOWED', 'Method HTTP tidak diizinkan. Gunakan method POST', 405);
 }
 
-$raw = file_get_contents('php://input');
-$input = json_decode($raw, true);
-
-if (!is_array($input)) {
-    json_error('BAD_REQUEST', 'Format request tidak valid. Harus JSON', 400);
-}
+$input = read_json_body();
 
 $device_id = $input['device_id'] ?? null;
 $duration_hours = $input['duration_hours'] ?? null;
