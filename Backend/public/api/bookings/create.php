@@ -32,14 +32,6 @@ if (!preg_match('/^08\d{8,13}$/', $phone)) {
     json_error('VALIDATION_ERROR', 'Nomor HP tidak valid. Gunakan format 10-15 digit diawali 08', 422);
 }
 
-//c. Validasi device_id (bilangan bulat >= 1)
-$deviceId = filter_var($input['device_id'] ?? null, FILTER_VALIDATE_INT, [
-    'options' => ['min_range' => 1]
-]);
-if ($deviceId === false) {
-    json_error('VALIDATION_ERROR', 'device_id harus berupa bilangan bulat minimal 1', 422);
-}
-
 //d. Validasi start_time (Wajib, format YYYY-MM-DDTHH:MM:SS, maksimal 5 menit di masa lalu)
 $startTimeStr = $input['start_time'] ?? '';
 if (!is_string($startTimeStr)) {
@@ -56,14 +48,6 @@ if ($startDt < $fiveMinutesAgo) {
     json_error('VALIDATION_ERROR', 'Waktu mulai (start_time) tidak boleh lebih dari 5 menit di masa lalu', 422);
 }
 
-//e. Validasi duration_hours (Bilangan bulat 1-168)
-$durationHours = filter_var($input['duration_hours'] ?? null, FILTER_VALIDATE_INT, [
-    'options' => ['min_range' => 1, 'max_range' => 168]
-]);
-if ($durationHours === false) {
-    json_error('VALIDATION_ERROR', 'duration_hours harus berupa bilangan bulat 1-168', 422);
-}
-
 //f. Validasi payment_method (Salah satu dari QRIS, Transfer Bank, Cash)
 $paymentMethod = $input['payment_method'] ?? '';
 $allowedMethods = ['QRIS', 'Transfer Bank', 'Cash'];
@@ -71,10 +55,54 @@ if (!is_string($paymentMethod) || !in_array($paymentMethod, $allowedMethods, tru
     json_error('VALIDATION_ERROR', 'Metode pembayaran harus salah satu dari QRIS, Transfer Bank, atau Cash', 422);
 }
 
-//3. Hitung waktu selesai dan menyiapkan format teks berzona waktu untuk PostgreSQL
-$endDt = $startDt->modify("+{$durationHours} hours");
-$startTimeDb = $startDt->format('Y-m-d H:i:sP');
-$endTimeDb = $endDt->format('Y-m-d H:i:sP');
+$rawItems = $input['items'] ?? null;
+if (!is_array($rawItems) || !array_is_list($rawItems) || count($rawItems) === 0 || count($rawItems) > 4) {
+    json_error('VALIDATION_ERROR', 'items harus berupa array daftar dan berisi 1 sampai 4 item', 422);
+}
+
+$validatedItems = [];
+$deviceIds = [];
+
+foreach ($rawItems as $index => $rawItem) {
+    if (!is_array($rawItem) || array_is_list($rawItem)) {
+        json_error('VALIDATION_ERROR', "Item pada indeks ke-{$index} harus berupa objek", 422);
+    }
+
+    $devId = filter_var($rawItem['device_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+    if ($devId === false) {
+        json_error('VALIDATION_ERROR', 'device_id pada setiap item harus berupa bilangan bulat minimal 1', 422);
+    }
+    $deviceIds[] = $devId;
+
+    $hasDuration = ($rawItem['duration_hours'] ?? null) !== null;
+    $hasPackage  = ($rawItem['package_id'] ?? null) !== null;
+
+    if ($hasDuration === $hasPackage) {
+        json_error('VALIDATION_ERROR', "Item device ID {$devId} harus memilih tepat salah satu: duration_hours atau package_id", 422);
+    }
+
+    if ($hasDuration) {
+        $dur = filter_var($rawItem['duration_hours'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 168]]);
+        if ($dur === false) {
+            json_error('VALIDATION_ERROR', "duration_hours untuk device ID {$devId} harus bilangan bulat 1-168", 422);
+        }
+        $validatedItems[] = ['device_id' => $devId, 'duration_hours' => $dur, 'package_id' => null];
+    } else {
+        $pkg = filter_var($rawItem['package_id'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        if ($pkg === false) {
+            json_error('VALIDATION_ERROR', "package_id untuk device ID {$devId} harus bilangan bulat minimal 1", 422);
+        }
+        $validatedItems[] = ['device_id' => $devId, 'duration_hours' => null, 'package_id' => $pkg];
+    }
+}
+
+// Cek device_id ganda
+if (count($deviceIds) !== count(array_unique($deviceIds))) {
+    json_error('VALIDATION_ERROR', 'Tidak boleh ada device_id yang duplikat dalam satu pesanan', 422);
+}
+
+// Proses Transaksi Database
+$startTimedb = $startDt->format('Y-m-d H:i:sP');
 
 //4. Transaksi Database
 try {
@@ -105,23 +133,6 @@ try {
         $customerId = (int) $stmtNewUser->fetchColumn();
     }
 
-    //b. Ambil data device
-    $stmtDevice = $pdo->prepare("SELECT device_id, price_per_hour, status 
-                                       FROM device 
-                                       WHERE device_id = :device_id");
-    $stmtDevice->execute(['device_id' => $deviceId]);
-    $device = $stmtDevice->fetch();
-
-    if (!$device) {
-        $pdo->rollBack();
-        json_error('NOT_FOUND', 'Device sedang dalam perbaikan (Maintenance) dan tidak dapat dipesan', 404);
-    }
-
-    if ($device['status'] === 'Maintenance') {
-        $pdo->rollBack();
-        json_error('DEVICE_MAINTENANCE', 'Device sedang dalam perbaikan dan tidak dapat dipesan', 409);
-    }
-
     //c. Insert ke tabel booking (booking_channel selalu 'Online')
     $stmtBooking = $pdo->prepare("INSERT INTO booking (customer_id, booking_channel, payment_method) 
                                         VALUES (:customer_id, 'Online', :payment_method)
@@ -134,25 +145,95 @@ try {
     $bookingId = (int) $bookingRow['booking_id'];
     $bookingCode = $bookingRow['booking_code'];
 
-    //d. Hitung harga di sisi server & insert ke tabel rental
-    //package_id dan rental_status menggunakan nilai bawaan (DEFAULT) dari database
-    $pricePerHour = (float) $device['price_per_hour'];
-    $totalCost = $durationHours * $pricePerHour;
+    //Menyiapkan prepare statement untuk digunakan berulang kali di loop
+    $stmtGetDevice = $pdo->prepare("SELECT device_id, price_per_hour, status 
+                                    FROM device 
+                                    WHERE device_id = :device_id");
 
-    $stmtRental = $pdo->prepare("
-        INSERT INTO rental (booking_id, device_id, start_time, duration_hours, end_time, price_per_hour, total_cost) 
-        VALUES (:booking_id, :device_id, :start_time, :duration_hours, :end_time, :price_per_hour, :total_cost)
-        RETURNING rental_status");
-    $stmtRental->execute([
-        'booking_id' => $bookingId,
-        'device_id' => $deviceId,
-        'start_time' => $startTimeDb,
-        'duration_hours' => $durationHours,
-        'end_time' => $endTimeDb,
-        'price_per_hour' => $pricePerHour,
-        'total_cost' => $totalCost
-    ]);
-    $rentalStatus = $stmtRental->fetchColumn();
+    $stmtGetPackage = $pdo->prepare("SELECT package_id, duration_hours,package_price 
+                                     FROM rental_package
+                                     WHERE package_id = :package_id AND device_id = :device_id AND is_active = true");
+
+    $stmtInsertRental = $pdo->prepare("INSERT INTO rental (booking_id, device_id, package_id, start_time, duration_hours, end_time, price_per_hour, total_cost)
+                                       VALUES (
+                                               :booking_id, :device_id, :package_id, :start_time, :duration_hours, :end_time, :price_per_hour, :total_cost
+                                       ) RETURNING rental_status");
+
+    $responseItems = [];
+    $grandTotal = 0;
+
+    foreach ($validatedItems as $item) {
+        $devId = $item['device_id'];
+
+        $stmtGetDevice->execute(['device_id' => $devId]);
+        $device = $stmtGetDevice->fetch();
+
+        if (!$device) {
+            $pdo->rollBack();
+            json_error('NOT_FOUND', "Device dengan ID {$devId} tidak ditemukan", 404);
+        }
+
+        if ($device['status'] === 'Maintenance') {
+            $pdo->rollBack();
+            json_error('DEVICE_MAINTENANCE', "Device dengan ID {$devId} sedang dalam Maintenance (Perbaikan)", 409);
+        }
+
+        //Menentukan nilai berdasarkan mode durasi atau mode paket
+        if ($item['package_id'] === null) {
+            //Mode durasi reguler
+            $itemDuration = $item['duration_hours'];
+            $pricePerHour = (float) $device['price_per_hour'];
+            $itemTotal = $itemDuration * $pricePerHour;
+            $packageId = null;
+            $resPrice = $pricePerHour;
+        } else {
+            //Mode paket
+            $pkgId = $item['package_id'];
+            $stmtGetPackage->execute([
+                'package_id' => $pkgId,
+                'device_id' => $devId
+            ]);
+            $package = $stmtGetPackage->fetch();
+
+            if (!$package) {
+                $pdo->rollBack();
+                json_error('NOT_FOUND', "Paket dengan ID {$pkgId} tidak ditemukan", 404);
+            }
+
+            $itemDuration = (int) $package['duration_hours'];
+            $itemTotal = (float) $package['package_price'];
+            $packageId = (int) $package['package_id'];
+            $pricePerHour = null;//Wajib Null untuk database agar lolos chk_pricing_mode
+            $resPrice = null;//Ditampilkan sebagai null di output JSON
+        }
+
+        $itemEndDt = $startDt->modify("+{$itemDuration} hours");
+        $itemEndTimeDb = $itemEndDt->format('Y-m-d H:i:sP');
+
+        $stmtInsertRental->execute([
+            'booking_id' => $bookingId,
+            'device_id' => $devId,
+            'package_id' => $packageId,
+            'start_time' => $startTimedb,
+            'duration_hours' => $itemDuration,
+            'end_time' => $itemEndTimeDb,
+            'price_per_hour' => $resPrice,
+            'total_cost' => $itemTotal
+        ]);
+        $rentalStatus = $stmtInsertRental->fetchColumn();
+
+        $grandTotal += $itemTotal;
+
+        $responseItems[] = [
+            'device_id' => $devId,
+            'package_id' => $packageId,
+            'duration_hours' => $itemDuration,
+            'price_per_hour' => $resPrice,
+            'end_time' => $itemEndDt->format('Y-m-d\TH:i:s'),
+            'total_cost' => $itemTotal,
+            'rental_status' => $rentalStatus
+        ];
+    }
 
     //Menyelesaikan transaksi
     $pdo->commit();
@@ -162,14 +243,10 @@ try {
         'success' => true,
         'data' => [
             'booking_code' => $bookingCode,
-            'device_id' => $deviceId,
             'start_time' => $startDt->format('Y-m-d\TH:i:s'),
-            'end_time' => $endDt->format('Y-m-d\TH:i:s'),
-            'duration_hours' => $durationHours,
-            'price_per_hour' => $pricePerHour,
-            'total_cost' => $totalCost,
-            'rental_status' => $rentalStatus,
-            'payment_method' => $paymentMethod
+            'payment_method' => $paymentMethod,
+            'total_cost' => $grandTotal,
+            'items' => $responseItems
         ]
     ], 201);
 
@@ -178,5 +255,5 @@ try {
         $pdo->rollBack();
     }
     error_log("Booking Create API Error: " . $e->getMessage());
-    json_error('SERVER_ERROR', 'Terjadi kesalahan internal pada server', 500);
+    json_error('SERVER_ERROR', 'Terjadi kesalahn pada server', 500);
 }
