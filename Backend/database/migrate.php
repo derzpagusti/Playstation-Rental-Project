@@ -58,6 +58,7 @@ if ($command === 'fresh') {
         exit("Perintah fresh hanya boleh dijalankan jika APP_ENV=local\n");
     }
     $pdo->exec(file_get_contents(__DIR__ . '/reset.sql'));
+    $pdo->exec('DROP TABLE IF EXISTS schema_migrations CASCADE');
     echo "Semua tabel dihapus.\n";
     ensure_tracking_table($pdo);
     run_folder($pdo, 'migrations');
