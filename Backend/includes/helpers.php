@@ -67,3 +67,10 @@ function slot_is_free(PDO $pdo, int $deviceId, string $startDb, string $endDb): 
     ]);
     return (bool)$stmt->fetchColumn();
 }
+
+function mark_overdue(PDO $pdo): void
+{
+    $pdo->exec("UPDATE rental 
+               SET rental_status = 'Overdue', overdue_at = now() 
+               WHERE rental_status = 'Rented' AND end_time < now()");
+}
