@@ -20,6 +20,13 @@ if (!filter_var($device_id, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1
 $has_duration = ($duration_hours !== null);
 $has_package = ($package_id !== null);
 
+if ($has_duration) {
+    $duration_hours = filter_var($duration_hours, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 168]]);
+    if ($duration_hours === false) {
+        json_error('VALIDATION_ERROR', 'duration_hours harus berupa angka 1-168', 422);
+    }
+}
+
 if ($has_duration === $has_package) {
     json_error('VALIDATION_ERROR', 'Pilih tepat salah satu: masukkan duration_hours ATAU package_id', 422);
 }
