@@ -74,3 +74,20 @@ function mark_overdue(PDO $pdo): void
                SET rental_status = 'Overdue', overdue_at = now() 
                WHERE rental_status = 'Rented' AND end_time < now()");
 }
+
+function build_timeline(array $row): array
+{
+    $timeline = [
+        ['status' => 'Booked', 'at' => $row['created_at']],
+    ];
+    if ($row['rented_at'] !== null) {
+        $timeline[] = ['status' => 'Rented', 'at' => $row['rented_at']];
+    }
+    if ($row['overdue_at'] !== null) {
+        $timeline[] = ['status' => 'Overdue', 'at' => $row['overdue_at']];
+    }
+    if ($row['returned_at'] !== null) {
+        $timeline[] = ['status' => 'Returned', 'at' => $row['returned_at']];
+    }
+    return $timeline;
+}
