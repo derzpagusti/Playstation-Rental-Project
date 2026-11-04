@@ -31,7 +31,7 @@ if (env('DB_NAME', '') === '' || env('DB_USER', '') === '') {
 }
 
 $dsn = sprintf(
-    'pgsql:host=%s;port=%s;dbname=%s',
+    'pgsql:host=%s;port=%s;dbname=%s;sslmode=require',
     env('DB_HOST', 'localhost'),
     env('DB_PORT', '5432'),
     env('DB_NAME')
