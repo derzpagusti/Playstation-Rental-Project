@@ -1,45 +1,110 @@
--- Kode booking dibuat tetap (DEMO0001 dst.) supaya frontend bisa menguji
--- halaman lacak pesanan. Waktu memakai now(), jadi selalu relevan.
-
 -- 1) Pesanan (header)
-INSERT INTO booking (booking_code, customer_id, staff_id, booking_channel, created_at,
-                     payment_method, payment_proof_url, payment_verified_at, paid_at,
-                     deposit_type, deposit_value, deposit_returned_at)
-VALUES ('DEMO0001',
+INSERT INTO booking (
+    booking_code,
+    customer_id,
+    staff_id,
+    booking_channel,
+    created_at,
+    payment_method,
+    payment_status,
+    payment_expires_at,
+    payment_proof_url,
+    payment_verified_at,
+    paid_at,
+    deposit_type,
+    deposit_value,
+    deposit_returned_at
+)
+VALUES
+    -- DEMO0001: QRIS sudah dibayar dan diverifikasi
+    (
+        'DEMO0001',
         (SELECT user_id FROM users WHERE phone = '081234567890'),
         (SELECT user_id FROM users WHERE username = 'reza'),
-        'WhatsApp', now() - INTERVAL '70 minutes',
-        'QRIS', 'payment_proof/demo-0001.jpg',
-        now() - INTERVAL '55 minutes', now() - INTERVAL '55 minutes',
-        NULL, NULL, NULL),
+        'WhatsApp',
+        NOW() - INTERVAL '70 minutes',
+        'QRIS',
+        'Paid',
+        NULL,
+        'payment_proof/demo-0001.jpg',
+        NOW() - INTERVAL '55 minutes',
+        NOW() - INTERVAL '55 minutes',
+        NULL,
+        NULL,
+        NULL
+    ),
 
-       ('DEMO0002',
+    -- DEMO0002: Cash, sudah dibayar
+    (
+        'DEMO0002',
         (SELECT user_id FROM users WHERE phone = '082345678901'),
         (SELECT user_id FROM users WHERE username = 'admin'),
-        'Walk-in', now() - INTERVAL '8 hours',
-        'Cash', NULL,
-        now() - INTERVAL '8 hours', now() - INTERVAL '8 hours',
-        'Kartu Pelajar', 'Kartu Pelajar a.n. Sinta Dewi', NULL),
+        'Walk-in',
+        NOW() - INTERVAL '8 hours',
+        'Cash',
+        'Paid',
+        NULL,
+        NULL,
+        NOW() - INTERVAL '8 hours',
+        NOW() - INTERVAL '8 hours',
+        'Kartu Pelajar',
+        'Kartu Pelajar a.n. Sinta Dewi',
+        NULL
+    ),
 
-       ('DEMO0003',
+    -- DEMO0003: Transfer Bank sudah dibayar dan diverifikasi
+    (
+        'DEMO0003',
         (SELECT user_id FROM users WHERE phone = '083456789012'),
         (SELECT user_id FROM users WHERE username = 'admin'),
-        'Online', now() - INTERVAL '49 hours',
-        'Transfer Bank', 'payment_proof/demo-0003.jpg',
-        now() - INTERVAL '48 hours 10 minutes', now() - INTERVAL '48 hours 10 minutes',
-        'SIM', 'SIM a.n. Rafi Pratama', now() - INTERVAL '46 hours'),
+        'Online',
+        NOW() - INTERVAL '49 hours',
+        'Transfer Bank',
+        'Paid',
+        NULL,
+        'payment_proof/demo-0003.jpg',
+        NOW() - INTERVAL '48 hours 10 minutes',
+        NOW() - INTERVAL '48 hours 10 minutes',
+        'SIM',
+        'SIM a.n. Rafi Pratama',
+        NOW() - INTERVAL '46 hours'
+    ),
 
-       ('DEMO0004',
+    -- DEMO0004: QRIS, belum mengunggah bukti pembayaran
+    (
+        'DEMO0004',
         (SELECT user_id FROM users WHERE phone = '082345678901'),
         NULL,
-        'Online', now() - INTERVAL '10 minutes',
-        'QRIS', NULL, NULL, NULL, NULL, NULL, NULL),
+        'Online',
+        NOW(),
+        'QRIS',
+        'Pending',
+        NOW() + INTERVAL '5 minutes',
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL
+    ),
 
-       ('DEMO0005',
+    -- DEMO0005: Cash, belum diverifikasi
+    (
+        'DEMO0005',
         (SELECT user_id FROM users WHERE phone = '083456789012'),
         NULL,
-        'WhatsApp', now() - INTERVAL '30 minutes',
-        'Cash', NULL, NULL, NULL, NULL, NULL, NULL);
+        'WhatsApp',
+        NOW() - INTERVAL '30 minutes',
+        'Cash',
+        'Pending',
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL
+    );
 
 -- 2) Console dalam tiap pesanan (detail)
 --    pkg_hours : durasi paket yang dipakai (NULL = durasi bebas)
