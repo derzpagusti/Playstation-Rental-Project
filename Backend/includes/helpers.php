@@ -53,11 +53,13 @@ function slot_is_free(PDO $pdo, int $deviceId, string $startDb, string $endDb): 
     $stmt = $pdo->prepare(
         "SELECT NOT EXISTS (
             SELECT 1
-            FROM rental
-            WHERE device_id = :device_id
-              AND rental_status <> 'Returned'
-              AND start_time < CAST(:end_db AS timestamptz)
-              AND end_time > CAST(:start_db AS timestamptz)
+            FROM rental r
+            JOIN booking b ON b.booking_id = r.booking_id
+            WHERE r.device_id = :device_id
+              AND r.rental_status <> 'Returned'
+              AND r.start_time < CAST(:end_db AS timestamptz)
+              AND r.end_time > CAST(:start_db AS timestamptz)
+              AND b.payment_status <> 'Expired'
         )"
     );
     $stmt->execute([
@@ -90,4 +92,22 @@ function build_timeline(array $row): array
         $timeline[] = ['status' => 'Returned', 'at' => $row['returned_at']];
     }
     return $timeline;
+}
+
+function expire_unpaid_bookings(PDO $pdo): void
+{
+    $pdo->exec("
+        WITH expired AS (
+            UPDATE booking
+            SET payment_status = 'Expired'
+            WHERE payment_status = 'Pending'
+              AND payment_expires_at IS NOT NULL
+              AND payment_expires_at <= now()
+            RETURNING booking_id
+        )
+        UPDATE rental
+        SET rental_status = 'Cancelled'
+        WHERE booking_id IN (SELECT booking_id FROM expired)
+          AND rental_status = 'Booked'
+    ");
 }
