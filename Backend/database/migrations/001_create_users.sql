@@ -7,6 +7,7 @@ CREATE TABLE users
     phone                 VARCHAR(20) UNIQUE,
     email                 VARCHAR(100),
     username              VARCHAR(50) UNIQUE,
+    address               VARCHAR(255),
     password_hash         VARCHAR(255),
     identity_doc_type     VARCHAR(20)
         CHECK (identity_doc_type IN ('Kartu Pelajar', 'KTP', 'SIM')),

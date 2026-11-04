@@ -12,7 +12,7 @@ CREATE TABLE rental
     extra_hours         INT            NOT NULL DEFAULT 0 CHECK (extra_hours >= 0),
     extra_cost          NUMERIC(10, 2) NOT NULL DEFAULT 0 CHECK (extra_cost >= 0),
     rental_status       VARCHAR(20)    NOT NULL DEFAULT 'Booked'
-        CHECK (rental_status IN ('Booked', 'Rented', 'Overdue', 'Returned')),
+        CHECK (rental_status IN ('Booked', 'Rented', 'Overdue', 'Returned', 'Cancelled')),
     rented_at           TIMESTAMPTZ,                                         -- waktu diverifikasi admin
     overdue_at          TIMESTAMPTZ,                                         -- waktu ditandai Overdue
     returned_at         TIMESTAMPTZ,                                         -- waktu dikembalikan
