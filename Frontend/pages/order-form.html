@@ -1,0 +1,466 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Order Form - NovaPS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/order-form.css" />
+    <script
+      src="../js/shared/session.js"
+      data-require-login="login.html"
+    ></script>
+    <script src="../js/shared/navbar.js" defer></script>
+    <script src="../js/shared/validation.js" defer></script>
+    <script src="../js/shared/image.js" defer></script>
+    <script src="../js/shared/orders.js" defer></script>
+    <script src="../js/order-form.js" defer></script>
+  </head>
+  <body
+    class="min-h-screen bg-slate-50 text-slate-800"
+    data-logout-redirect="../index.html"
+  >
+    <header class="h-[68px] bg-slate-900">
+      <div class="wrap flex h-full items-center justify-between">
+        <a
+          href="../index.html"
+          aria-label="NovaPS home"
+          class="group flex items-center gap-2.5 font-display text-2xl font-bold text-white transition-transform duration-150 active:scale-95"
+        >
+          <span
+            class="grid size-[30px] place-items-center rounded-[7px] bg-cyan-400 transition-transform duration-300 ease-[cubic-bezier(.3,1.6,.5,1)] group-hover:-rotate-[8deg] group-hover:scale-110"
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#0f172a"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <rect x="2" y="6" width="20" height="12" rx="3" />
+              <path d="M6 12h4M8 10v4" />
+              <circle cx="15.5" cy="11" r=".6" />
+              <circle cx="17.5" cy="13" r=".6" />
+            </svg>
+          </span>
+          Nova<span class="text-cyan-400">PS</span>
+        </a>
+        <nav
+          class="flex items-center gap-1.5 sm:gap-[18px]"
+          aria-label="Account"
+        >
+          <div class="group/tip relative">
+            <a
+              href="time-remaining.html"
+              class="icon-btn aria-[current=page]:bg-tip"
+              aria-label="Time Remaining"
+              aria-describedby="tip-time"
+              ><svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 6v6l4 2" /></svg
+            ></a>
+            <span id="tip-time" role="tooltip" class="tooltip"
+              ><span class="block text-sm font-medium">Time Remaining</span
+              ><span class="block text-xs text-sky-200"
+                >See how much rental time is left</span
+              ></span
+            >
+          </div>
+          <div class="group/tip relative">
+            <a
+              href="order-status.html"
+              class="icon-btn aria-[current=page]:bg-tip"
+              aria-label="Order Status"
+              aria-describedby="tip-orders"
+              ><svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="5" y="3" width="14" height="18" rx="2" />
+                <path d="M9 3h6v3H9zM9 11h6M9 15h6" /></svg
+            ></a>
+            <span id="tip-orders" role="tooltip" class="tooltip"
+              ><span class="block text-sm font-medium">Order Status</span
+              ><span class="block text-xs text-sky-200"
+                >View your order history &amp; status</span
+              ></span
+            >
+          </div>
+          <div class="group group/tip relative">
+            <button
+              type="button"
+              id="profileBtn"
+              class="icon-btn w-14 border-white aria-[current=page]:bg-tip"
+              aria-haspopup="true"
+              aria-expanded="false"
+              aria-label="My Account"
+              aria-describedby="tip-account"
+            >
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <circle cx="12" cy="8" r="4" />
+                <path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7" />
+              </svg>
+            </button>
+            <span
+              id="tip-account"
+              role="tooltip"
+              class="tooltip group-data-[open]:hidden"
+              ><span class="block text-sm font-medium">My Account</span
+              ><span class="block text-xs text-sky-200"
+                >View your account details</span
+              ></span
+            >
+            <div
+              class="invisible absolute right-0 top-[50px] z-10 min-w-[140px] -translate-y-1.5 rounded-lg bg-white p-1.5 opacity-0 shadow-xl transition-all duration-200 group-data-[open]:visible group-data-[open]:translate-y-0 group-data-[open]:opacity-100"
+            >
+              <a
+                href="account.html"
+                class="block w-full rounded-md px-3 py-2 text-left text-[15px] font-medium text-slate-800 transition-colors hover:bg-slate-100"
+                >My Account</a
+              >
+              <button
+                type="button"
+                id="logoutBtn"
+                class="w-full cursor-pointer rounded-md px-3 py-2 text-left text-[15px] font-medium text-slate-800 transition-colors hover:bg-slate-100"
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        </nav>
+      </div>
+    </header>
+    <main class="mx-auto w-[640px] max-w-[calc(100%-2rem)] pt-5 pb-16">
+      <a
+        href="../index.html"
+        class="inline-block text-2xl text-blue-600 underline underline-offset-4 transition-all duration-150 hover:-translate-x-1 hover:text-blue-700"
+        >&larr; Back to Home</a
+      >
+      <h1
+        class="my-6 text-center font-display text-[32px] font-bold text-black"
+      >
+        Order Form
+      </h1>
+
+      <form id="order-form" novalidate>
+        <section class="rounded-lg border border-slate-200 bg-white p-6">
+          <h2 class="font-display text-base font-bold text-black mb-3">
+            Customer Information
+          </h2>
+          <div data-field class="group/field mb-2.5">
+            <label for="fullname" class="mb-0.5 block text-base"
+              >Full Name</label
+            >
+            <input
+              type="text"
+              id="fullname"
+              name="fullname"
+              autocomplete="name"
+              data-validate="required"
+              class="field-input h-10"
+            />
+            <p
+              data-error
+              role="alert"
+              class="mt-0.5 text-[11px] text-red-600 empty:hidden"
+            ></p>
+          </div>
+          <div data-field class="group/field mb-2.5">
+            <label for="phone" class="mb-0.5 block text-base"
+              >Phone Number (WA)</label
+            >
+            <input
+              type="tel"
+              id="phone"
+              name="phone"
+              autocomplete="tel"
+              data-validate="phone"
+              class="field-input h-10"
+            />
+            <p
+              data-error
+              role="alert"
+              class="mt-0.5 text-[11px] text-red-600 empty:hidden"
+            ></p>
+          </div>
+          <div data-field class="group/field mb-2.5">
+            <label for="address" class="mb-0.5 block text-base">Address</label>
+            <input
+              type="text"
+              id="address"
+              name="address"
+              autocomplete="street-address"
+              data-validate="required"
+              class="field-input h-10"
+            />
+            <p
+              data-error
+              role="alert"
+              class="mt-0.5 text-[11px] text-red-600 empty:hidden"
+            ></p>
+          </div>
+          <div data-field class="group/field mb-2.5">
+            <label for="email" class="mb-0.5 block text-base">Email</label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              autocomplete="email"
+              data-validate="email"
+              class="field-input h-10"
+            />
+            <p
+              data-error
+              role="alert"
+              class="mt-0.5 text-[11px] text-red-600 empty:hidden"
+            ></p>
+          </div>
+          <div data-field class="group/field mb-1">
+            <label for="idcard" class="mb-0.5 block text-base"
+              >ID Card Photo</label
+            >
+            <label
+              for="idcard"
+              data-upload
+              class="group/upload relative grid h-16 cursor-pointer place-items-center overflow-hidden rounded-lg border-[1.5px] border-dashed border-slate-300 bg-slate-100 text-slate-400 transition-all duration-150 hover:border-indigo-500 hover:bg-indigo-50 hover:text-indigo-500 focus-within:ring-[3px] focus-within:ring-indigo-500/20 has-[:disabled]:cursor-default has-[:disabled]:hover:border-slate-300 has-[:disabled]:hover:bg-slate-100 has-[:disabled]:hover:text-slate-400 group-data-[invalid]/field:border-red-600 data-[has-image]:h-40"
+            >
+              <svg
+                class="group-data-[has-image]/upload:hidden"
+                width="28"
+                height="28"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="3" y="4" width="18" height="16" rx="2" />
+                <circle cx="9" cy="10" r="1.5" />
+                <path d="m21 16-5-5-9 9" />
+              </svg>
+              <img
+                alt="ID card"
+                class="hidden size-full object-contain group-data-[has-image]/upload:block"
+              />
+              <input
+                type="file"
+                id="idcard"
+                name="idcard"
+                accept="image/*"
+                data-validate="file"
+                class="absolute inset-0 cursor-pointer opacity-0 disabled:cursor-default"
+              />
+            </label>
+            <p
+              data-error
+              role="alert"
+              class="mt-0.5 text-[11px] text-red-600 empty:hidden"
+            ></p>
+          </div>
+          <p id="customer-hint" class="mt-3 text-xs text-slate-500">
+            Filled in from your account. To change it, go to
+            <a
+              href="account.html"
+              class="text-blue-600 underline underline-offset-2 hover:text-blue-700"
+              >My Profile</a
+            >.
+          </p>
+        </section>
+
+        <section class="mt-6 rounded-lg border border-slate-200 bg-white p-6">
+          <h2 class="font-display text-base font-bold text-black mb-3">
+            Rental Details
+          </h2>
+          <div id="units"></div>
+          <div id="add-unit-wrap" class="mt-3">
+            <p class="mb-0.5 text-base">Order unit #2</p>
+            <button
+              type="button"
+              id="add-unit"
+              class="flex w-full cursor-pointer flex-col items-center gap-1 rounded-lg border border-dashed border-slate-300 py-3 text-slate-400 transition-all duration-150 hover:-translate-y-0.5 hover:border-indigo-500 hover:bg-indigo-50 hover:text-indigo-500 active:scale-[.98]"
+            >
+              <svg
+                width="32"
+                height="32"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+                class="stroke-1"
+              >
+                <path d="M12 4v16M4 12h16" />
+              </svg>
+              <span class="text-[10px]">Add Unit #2</span>
+            </button>
+          </div>
+          <div class="mt-3">
+            <label for="notes" class="mb-0.5 block text-base"
+              >Additional Notes</label
+            >
+            <textarea
+              id="notes"
+              name="notes"
+              rows="2"
+              maxlength="300"
+              placeholder="Optional"
+              class="field-input h-auto resize-none py-2"
+            ></textarea>
+          </div>
+        </section>
+
+        <section
+          id="summary"
+          hidden
+          class="mt-6 rounded-lg border border-slate-200 bg-white p-6"
+        >
+          <h2 class="font-display text-base font-bold text-black mb-3">
+            Order Summary
+          </h2>
+          <div id="summary-rows"></div>
+        </section>
+
+        <p
+          id="form-error"
+          role="alert"
+          class="mt-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 empty:hidden"
+        ></p>
+        <div class="mt-6 flex items-center justify-between">
+          <a
+            href="../index.html"
+            class="btn border-2 border-slate-800 bg-white px-[25px] py-2.5 text-base font-semibold text-slate-800 hover:bg-slate-800 hover:text-white"
+            >Back to home</a
+          >
+          <button
+            type="submit"
+            id="checkout"
+            disabled
+            class="btn btn-indigo px-6 py-2.5 text-base font-semibold"
+          >
+            Checkout
+          </button>
+        </div>
+        <p
+          id="checkout-hint"
+          aria-live="polite"
+          class="mt-2 text-right text-xs text-slate-500"
+        ></p>
+      </form>
+
+      <!-- One unit block (cloned by js/order-form.js) -->
+      <template id="unit-template">
+        <div data-unit-block class="mb-4">
+          <div class="mb-0.5 flex items-center justify-between">
+            <span data-unit-title class="text-base">Select a Unit</span>
+            <button
+              type="button"
+              data-remove-unit
+              hidden
+              aria-label="Remove this unit"
+              class="grid size-8 cursor-pointer place-items-center rounded-md text-slate-700 transition-all duration-150 hover:scale-110 hover:text-red-600 active:scale-90"
+            >
+              <svg
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v5M14 11v5" />
+              </svg>
+            </button>
+          </div>
+          <div role="radiogroup" class="grid gap-2">
+            <label
+              class="flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-slate-300 bg-white px-4 py-4 text-base transition-all duration-150 hover:border-indigo-300 hover:shadow-sm active:scale-[.99] has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50 has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-50 has-[:disabled]:hover:border-slate-300 has-[:disabled]:hover:shadow-none has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-indigo-500/25"
+            >
+              <input type="radio" value="ps4" class="sr-only" />
+              <span
+                >PS 4<span class="mx-2 text-slate-300">|</span>Rp
+                50.000/day</span
+              >
+              <span data-available class="shrink-0 text-slate-800"></span>
+            </label>
+            <label
+              class="flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-slate-300 bg-white px-4 py-4 text-base transition-all duration-150 hover:border-indigo-300 hover:shadow-sm active:scale-[.99] has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50 has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-50 has-[:disabled]:hover:border-slate-300 has-[:disabled]:hover:shadow-none has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-indigo-500/25"
+            >
+              <input type="radio" value="ps5" class="sr-only" />
+              <span
+                >PS 5<span class="mx-2 text-slate-300">|</span>Rp
+                200.000/day</span
+              >
+              <span data-available class="shrink-0 text-slate-800"></span>
+            </label>
+          </div>
+          <div class="mt-4">
+            <label class="mb-0.5 block text-base">Rental duration</label>
+            <select
+              data-duration
+              disabled
+              aria-label="Rental duration"
+              class="field-input h-12"
+            >
+              <option value="">-- day</option>
+              <option value="1">1 day</option>
+              <option value="2">2 days</option>
+              <option value="3">3 days</option>
+              <option value="4">4 days</option>
+              <option value="5">5 days</option>
+              <option value="6">6 days</option>
+              <option value="7">7 days</option>
+            </select>
+            <p class="mt-0.5 text-[10px] text-slate-400">Max. 7 days</p>
+          </div>
+          <p
+            data-block-error
+            role="alert"
+            class="mt-1 text-[11px] text-red-600 empty:hidden"
+          ></p>
+        </div>
+      </template>
+    </main>
+  </body>
+</html>

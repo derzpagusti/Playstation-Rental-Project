@@ -1,0 +1,8 @@
+/* pages/payment.html -> builds to css/payment.css */
+@import "tailwindcss" source(none);
+@import "./partials/shared.css";
+@import "./partials/navbar.css";
+@import "./partials/forms.css";
+@source "../pages/payment.html";
+@source "../js/payment.js";
+@source "../js/shared/orders.js";

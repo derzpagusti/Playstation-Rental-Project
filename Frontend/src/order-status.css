@@ -1,0 +1,8 @@
+/* pages/order-status.html -> builds to css/order-status.css */
+@import "tailwindcss" source(none);
+@import "./partials/shared.css";
+@import "./partials/navbar.css";
+@import "./partials/tabs.css";
+@source "../pages/order-status.html";
+@source "../js/order-status.js";
+@source "../js/shared/orders.js";

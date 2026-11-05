@@ -1,0 +1,8 @@
+/* pages/order-form.html -> builds to css/order-form.css */
+@import "tailwindcss" source(none);
+@import "./partials/shared.css";
+@import "./partials/navbar.css";
+@import "./partials/forms.css";
+@source "../pages/order-form.html";
+@source "../js/order-form.js";
+@source "../js/shared/orders.js";

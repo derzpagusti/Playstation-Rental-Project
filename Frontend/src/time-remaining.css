@@ -1,0 +1,7 @@
+/* pages/time-remaining.html -> builds to css/time-remaining.css */
+@import "tailwindcss" source(none);
+@import "./partials/shared.css";
+@import "./partials/navbar.css";
+@import "./partials/tabs.css";
+@source "../pages/time-remaining.html";
+@source "../js/time-remaining.js";

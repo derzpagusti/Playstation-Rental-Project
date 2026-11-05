@@ -1,0 +1,17 @@
+/*
+ * Form inputs shared by My Profile, Order Form and Payment pages.
+ * Read-only = grey, editing = white with focus ring.
+ */
+
+@layer components {
+  .field-input {
+    @apply h-8 w-full rounded-md border border-slate-300 bg-white px-2.5 text-sm text-slate-800;
+    @apply transition-all duration-150 placeholder:text-slate-400;
+    @apply hover:border-indigo-300;
+    @apply focus:border-indigo-500 focus:ring-[3px] focus:ring-indigo-500/20 focus:outline-none;
+    @apply read-only:cursor-default read-only:border-slate-200 read-only:bg-slate-100 read-only:text-slate-500;
+    @apply read-only:hover:border-slate-200 read-only:focus:border-slate-200 read-only:focus:ring-0;
+    @apply disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400;
+    @apply group-data-[invalid]/field:border-red-600;
+  }
+}

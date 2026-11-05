@@ -1,0 +1,28 @@
+/*
+ * Navbar for logged-in users (icon buttons + tooltip).
+ * Imported by every page that shows the logged-in navbar.
+ */
+
+@layer components {
+  .icon-btn {
+    @apply grid h-10 w-10 cursor-pointer place-items-center rounded-lg border border-transparent;
+    @apply bg-transparent text-white;
+    @apply transition-all duration-150 ease-out;
+    @apply hover:-translate-y-0.5 hover:scale-110 hover:bg-tip;
+    @apply focus-visible:bg-tip focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-400;
+    @apply active:scale-90;
+  }
+
+  /*
+   * Tooltip: put it inside a wrapper with class "group/tip relative".
+   * Shows on hover (short delay) and on keyboard focus.
+   */
+  .tooltip {
+    @apply pointer-events-none invisible absolute top-[calc(100%+8px)] left-1/2 z-20;
+    @apply w-max max-w-[220px] -translate-x-1/2 -translate-y-1;
+    @apply rounded-lg bg-tip px-3 py-1.5 text-center text-white opacity-0 shadow-lg;
+    @apply transition-all duration-200;
+    @apply group-hover/tip:visible group-hover/tip:translate-y-0 group-hover/tip:opacity-100 group-hover/tip:delay-150;
+    @apply group-has-[:focus-visible]/tip:visible group-has-[:focus-visible]/tip:translate-y-0 group-has-[:focus-visible]/tip:opacity-100;
+  }
+}

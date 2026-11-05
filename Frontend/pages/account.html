@@ -1,0 +1,683 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>My Profile - NovaPS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/account.css" />
+    <script
+      src="../js/shared/session.js"
+      data-require-login="login.html"
+    ></script>
+    <script src="../js/shared/navbar.js" defer></script>
+    <script src="../js/shared/validation.js" defer></script>
+    <script src="../js/shared/image.js" defer></script>
+    <script src="../js/shared/orders.js" defer></script>
+    <script src="../js/account.js" defer></script>
+  </head>
+  <body
+    class="min-h-screen bg-slate-50 text-slate-800"
+    data-logout-redirect="../index.html"
+  >
+    <header class="h-[68px] bg-slate-900">
+      <div class="wrap flex h-full items-center justify-between">
+        <a
+          href="../index.html"
+          aria-label="NovaPS home"
+          class="group flex items-center gap-2.5 font-display text-2xl font-bold text-white transition-transform duration-150 active:scale-95"
+        >
+          <span
+            class="grid size-[30px] place-items-center rounded-[7px] bg-cyan-400 transition-transform duration-300 ease-[cubic-bezier(.3,1.6,.5,1)] group-hover:-rotate-[8deg] group-hover:scale-110"
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#0f172a"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <rect x="2" y="6" width="20" height="12" rx="3" />
+              <path d="M6 12h4M8 10v4" />
+              <circle cx="15.5" cy="11" r=".6" />
+              <circle cx="17.5" cy="13" r=".6" />
+            </svg>
+          </span>
+          Nova<span class="text-cyan-400">PS</span>
+        </a>
+        <nav
+          class="flex items-center gap-1.5 sm:gap-[18px]"
+          aria-label="Account"
+        >
+          <div class="group/tip relative">
+            <a
+              href="time-remaining.html"
+              class="icon-btn aria-[current=page]:bg-tip"
+              aria-label="Time Remaining"
+              aria-describedby="tip-time"
+              ><svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 6v6l4 2" /></svg
+            ></a>
+            <span id="tip-time" role="tooltip" class="tooltip"
+              ><span class="block text-sm font-medium">Time Remaining</span
+              ><span class="block text-xs text-sky-200"
+                >See how much rental time is left</span
+              ></span
+            >
+          </div>
+          <div class="group/tip relative">
+            <a
+              href="order-status.html"
+              class="icon-btn aria-[current=page]:bg-tip"
+              aria-label="Order Status"
+              aria-describedby="tip-orders"
+              ><svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="5" y="3" width="14" height="18" rx="2" />
+                <path d="M9 3h6v3H9zM9 11h6M9 15h6" /></svg
+            ></a>
+            <span id="tip-orders" role="tooltip" class="tooltip"
+              ><span class="block text-sm font-medium">Order Status</span
+              ><span class="block text-xs text-sky-200"
+                >View your order history &amp; status</span
+              ></span
+            >
+          </div>
+          <div class="group group/tip relative">
+            <button
+              type="button"
+              id="profileBtn"
+              class="icon-btn w-14 border-white aria-[current=page]:bg-tip"
+              aria-haspopup="true"
+              aria-expanded="false"
+              aria-label="My Account"
+              aria-describedby="tip-account"
+              aria-current="page"
+            >
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <circle cx="12" cy="8" r="4" />
+                <path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7" />
+              </svg>
+            </button>
+            <span
+              id="tip-account"
+              role="tooltip"
+              class="tooltip group-data-[open]:hidden"
+              ><span class="block text-sm font-medium">My Account</span
+              ><span class="block text-xs text-sky-200"
+                >View your account details</span
+              ></span
+            >
+            <div
+              class="invisible absolute right-0 top-[50px] z-10 min-w-[140px] -translate-y-1.5 rounded-lg bg-white p-1.5 opacity-0 shadow-xl transition-all duration-200 group-data-[open]:visible group-data-[open]:translate-y-0 group-data-[open]:opacity-100"
+            >
+              <a
+                href="account.html"
+                class="block w-full rounded-md px-3 py-2 text-left text-[15px] font-medium text-slate-800 transition-colors hover:bg-slate-100"
+                >My Account</a
+              >
+              <button
+                type="button"
+                id="logoutBtn"
+                class="w-full cursor-pointer rounded-md px-3 py-2 text-left text-[15px] font-medium text-slate-800 transition-colors hover:bg-slate-100"
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        </nav>
+      </div>
+    </header>
+    <main class="mx-auto w-[640px] max-w-[calc(100%-2rem)] pt-5 pb-16">
+      <a
+        href="../index.html"
+        class="inline-block text-2xl text-blue-600 underline underline-offset-4 transition-all duration-150 hover:-translate-x-1 hover:text-blue-700"
+        >&larr; Back to Home</a
+      >
+      <h1
+        class="my-6 text-center font-display text-[32px] font-bold text-black"
+      >
+        My Profile
+      </h1>
+
+      <!-- Account data: one field is editable at a time -->
+      <section
+        id="account-card"
+        class="rounded-lg border border-slate-200 bg-white p-6"
+      >
+        <h2 class="font-display text-base font-bold text-black">
+          Account data
+        </h2>
+        <p
+          id="edit-banner"
+          role="status"
+          hidden
+          class="mt-3 rounded-md bg-blue-100 px-3 py-2 text-center text-sm text-blue-950"
+        ></p>
+        <form id="profile-form" novalidate class="mt-3">
+          <div data-field="fullname" class="group/field mb-2.5">
+            <div class="mb-0.5 flex items-center justify-between">
+              <label for="fullname" class="text-base">Full Name</label>
+              <button
+                type="button"
+                data-edit="fullname"
+                class="btn btn-edit"
+                aria-label="Edit Full Name"
+              >
+                Edit
+              </button>
+            </div>
+            <input
+              type="text"
+              id="fullname"
+              name="fullname"
+              autocomplete="name"
+              data-validate="required"
+              readonly
+              placeholder="Not set yet"
+              class="field-input"
+            />
+            <p
+              data-error
+              role="alert"
+              class="mt-0.5 text-[11px] text-red-600 empty:hidden"
+            ></p>
+          </div>
+          <div data-field="phone" class="group/field mb-2.5">
+            <div class="mb-0.5 flex items-center justify-between">
+              <label for="phone" class="text-base">Phone Number (WA)</label>
+              <button
+                type="button"
+                data-edit="phone"
+                class="btn btn-edit"
+                aria-label="Edit Phone Number (WA)"
+              >
+                Edit
+              </button>
+            </div>
+            <input
+              type="tel"
+              id="phone"
+              name="phone"
+              autocomplete="tel"
+              data-validate="phone"
+              readonly
+              placeholder="Not set yet"
+              class="field-input"
+            />
+            <p
+              data-error
+              role="alert"
+              class="mt-0.5 text-[11px] text-red-600 empty:hidden"
+            ></p>
+          </div>
+          <div data-field="email" class="group/field mb-2.5">
+            <div class="mb-0.5 flex items-center justify-between">
+              <label for="email" class="text-base">Email</label>
+              <button
+                type="button"
+                data-edit="email"
+                class="btn btn-edit"
+                aria-label="Edit Email"
+              >
+                Edit
+              </button>
+            </div>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              autocomplete="email"
+              data-validate="email"
+              readonly
+              placeholder="Not set yet"
+              class="field-input"
+            />
+            <p
+              data-error
+              role="alert"
+              class="mt-0.5 text-[11px] text-red-600 empty:hidden"
+            ></p>
+          </div>
+          <div data-field="address" class="group/field mb-2.5">
+            <div class="mb-0.5 flex items-center justify-between">
+              <label for="address" class="text-base">Address</label>
+              <button
+                type="button"
+                data-edit="address"
+                class="btn btn-edit"
+                aria-label="Edit Address"
+              >
+                Edit
+              </button>
+            </div>
+            <input
+              type="text"
+              id="address"
+              name="address"
+              autocomplete="street-address"
+              data-validate="required"
+              readonly
+              placeholder="Not set yet"
+              class="field-input"
+            />
+            <p
+              data-error
+              role="alert"
+              class="mt-0.5 text-[11px] text-red-600 empty:hidden"
+            ></p>
+          </div>
+          <div data-field="idcard" class="group/field mb-2.5">
+            <div class="mb-0.5 flex items-center justify-between">
+              <label for="idcard" class="text-base">ID Card</label>
+              <button
+                type="button"
+                data-edit="idcard"
+                class="btn btn-edit"
+                aria-label="Edit ID Card"
+              >
+                Edit
+              </button>
+            </div>
+            <label
+              for="idcard"
+              data-upload
+              class="group/upload relative grid h-16 cursor-default place-items-center overflow-hidden rounded-md border-[1.5px] border-dashed border-slate-300 bg-slate-100 text-slate-400 transition-all duration-150 group-data-[editing]/field:cursor-pointer group-data-[editing]/field:bg-slate-50 group-data-[editing]/field:hover:border-indigo-500 group-data-[editing]/field:hover:bg-indigo-50 group-data-[editing]/field:hover:text-indigo-500 group-data-[editing]/field:focus-within:ring-[3px] group-data-[editing]/field:focus-within:ring-indigo-500/20 group-data-[invalid]/field:border-red-600 data-[has-image]:h-40"
+            >
+              <svg
+                class="group-data-[has-image]/upload:hidden"
+                width="28"
+                height="28"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="3" y="4" width="18" height="16" rx="2" />
+                <circle cx="9" cy="10" r="1.5" />
+                <path d="m21 16-5-5-9 9" />
+              </svg>
+              <img
+                alt="ID card"
+                class="hidden size-full object-contain group-data-[has-image]/upload:block"
+              />
+              <input
+                type="file"
+                id="idcard"
+                name="idcard"
+                accept="image/*"
+                data-validate="file"
+                disabled
+                class="absolute inset-0 cursor-pointer opacity-0"
+              />
+            </label>
+            <p
+              class="mt-0.5 hidden text-[10px] text-slate-400 group-data-[editing]/field:block"
+            >
+              Put your ID Card here
+            </p>
+            <p
+              data-error
+              role="alert"
+              class="mt-0.5 text-[11px] text-red-600 empty:hidden"
+            ></p>
+          </div>
+        </form>
+      </section>
+      <div
+        id="account-actions"
+        hidden
+        class="mt-6 flex items-center justify-between"
+      >
+        <button
+          type="button"
+          id="cancel-field"
+          class="btn border-2 border-slate-800 bg-white px-[25px] py-2.5 text-base font-semibold text-slate-800 hover:bg-slate-800 hover:text-white"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          form="profile-form"
+          class="btn btn-indigo px-6 py-2.5 text-base font-semibold"
+        >
+          Save Change
+        </button>
+      </div>
+
+      <!-- Password -->
+      <section
+        id="password-view"
+        class="mt-6 rounded-lg border border-slate-200 bg-white p-6"
+      >
+        <div class="flex items-start justify-between">
+          <h2 class="font-display text-base font-bold text-black">Password</h2>
+          <button type="button" id="change-password" class="btn btn-edit">
+            Change Password
+          </button>
+        </div>
+        <p class="mt-1 tracking-widest" aria-label="Hidden password">
+          **********
+        </p>
+      </section>
+
+      <form id="password-form" hidden novalidate>
+        <section class="mt-0 rounded-lg border border-slate-200 bg-white p-6">
+          <h2 class="font-display text-base font-bold text-black">Password</h2>
+          <p
+            id="password-banner"
+            role="status"
+            class="mt-3 rounded-md bg-blue-100 px-3 py-2 text-center text-sm text-blue-950"
+          >
+            You are currently editing password, don’t forget to save your
+            changes.
+          </p>
+          <div id="reset-email-field" hidden class="mt-3">
+            <label for="reset-email" class="mb-0.5 block text-base"
+              >Email</label
+            >
+            <input
+              type="email"
+              id="reset-email"
+              readonly
+              class="field-input"
+              aria-describedby="reset-email-hint"
+            />
+            <p id="reset-email-hint" class="mt-0.5 text-[11px] text-slate-400">
+              This is the email of your account.
+            </p>
+            <button
+              type="button"
+              id="remember-toggle"
+              class="mt-1 inline-block cursor-pointer text-xs text-blue-600 underline underline-offset-2 transition-all duration-150 hover:translate-x-0.5 hover:text-blue-700 active:scale-95"
+            >
+              Remembered it? Use your current password
+            </button>
+          </div>
+          <div id="current-field" data-field class="group/field mt-3">
+            <label for="current-password" class="mb-0.5 block text-base"
+              >Current Password</label
+            >
+            <div class="group/pw relative">
+              <input
+                type="password"
+                id="current-password"
+                name="current-password"
+                autocomplete="current-password"
+                data-validate="required"
+                class="field-input pr-9"
+              />
+              <button
+                type="button"
+                data-toggle-password
+                aria-label="Show password"
+                aria-pressed="false"
+                class="absolute top-1/2 right-1 grid size-7 -translate-y-1/2 cursor-pointer place-items-center rounded text-slate-500 transition-all duration-150 hover:scale-110 hover:text-indigo-500 focus-visible:outline-2 focus-visible:outline-indigo-500 active:scale-90"
+              >
+                <span class="group-data-[visible]/pw:hidden"
+                  ><svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.6"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"
+                    />
+                    <circle cx="12" cy="12" r="3" /></svg
+                ></span>
+                <span class="hidden group-data-[visible]/pw:block"
+                  ><svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.6"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M3 3l18 18M6.6 6.6A17 17 0 0 0 2 12s3.6 7 10 7a10 10 0 0 0 4-.8M10 5.1A10 10 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4"
+                    />
+                    <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" /></svg
+                ></span>
+              </button>
+            </div>
+            <p
+              data-error
+              role="alert"
+              class="mt-0.5 text-[11px] text-red-600 empty:hidden"
+            ></p>
+            <button
+              type="button"
+              id="forgot-toggle"
+              class="mt-1 inline-block cursor-pointer text-xs text-blue-600 underline underline-offset-2 transition-all duration-150 hover:translate-x-0.5 hover:text-blue-700 active:scale-95"
+            >
+              Forgot your current password?
+            </button>
+          </div>
+          <div data-field class="group/field mt-3">
+            <label for="new-password" class="mb-0.5 block text-base"
+              >New Password</label
+            >
+            <div class="group/pw relative">
+              <input
+                type="password"
+                id="new-password"
+                name="new-password"
+                autocomplete="new-password"
+                data-validate="password different"
+                data-other="#current-password"
+                class="field-input pr-9"
+              />
+              <button
+                type="button"
+                data-toggle-password
+                aria-label="Show password"
+                aria-pressed="false"
+                class="absolute top-1/2 right-1 grid size-7 -translate-y-1/2 cursor-pointer place-items-center rounded text-slate-500 transition-all duration-150 hover:scale-110 hover:text-indigo-500 focus-visible:outline-2 focus-visible:outline-indigo-500 active:scale-90"
+              >
+                <span class="group-data-[visible]/pw:hidden"
+                  ><svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.6"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"
+                    />
+                    <circle cx="12" cy="12" r="3" /></svg
+                ></span>
+                <span class="hidden group-data-[visible]/pw:block"
+                  ><svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.6"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M3 3l18 18M6.6 6.6A17 17 0 0 0 2 12s3.6 7 10 7a10 10 0 0 0 4-.8M10 5.1A10 10 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4"
+                    />
+                    <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" /></svg
+                ></span>
+              </button>
+            </div>
+            <p
+              data-error
+              role="alert"
+              class="mt-0.5 text-[11px] text-red-600 empty:hidden"
+            ></p>
+            <div class="mt-1.5" aria-live="polite">
+              <div class="flex gap-1">
+                <span data-bar></span><span data-bar></span
+                ><span data-bar></span><span data-bar></span>
+              </div>
+              <p
+                id="strength-label"
+                class="mt-1 min-h-4 text-xs text-slate-500"
+              ></p>
+              <ul class="mt-1 grid gap-0.5 text-xs text-slate-400">
+                <li
+                  data-req="length"
+                  class="transition-colors before:content-['○_'] data-[ok]:text-green-600 data-[ok]:before:content-['✓_']"
+                >
+                  At least 8 characters
+                </li>
+                <li
+                  data-req="number"
+                  class="transition-colors before:content-['○_'] data-[ok]:text-green-600 data-[ok]:before:content-['✓_']"
+                >
+                  Contains a number
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div data-field class="group/field mt-3">
+            <label for="confirm-password" class="mb-0.5 block text-base"
+              >Confirm New Password</label
+            >
+            <div class="group/pw relative">
+              <input
+                type="password"
+                id="confirm-password"
+                name="confirm-password"
+                autocomplete="new-password"
+                data-validate="match"
+                data-match="#new-password"
+                class="field-input pr-9"
+              />
+              <button
+                type="button"
+                data-toggle-password
+                aria-label="Show password"
+                aria-pressed="false"
+                class="absolute top-1/2 right-1 grid size-7 -translate-y-1/2 cursor-pointer place-items-center rounded text-slate-500 transition-all duration-150 hover:scale-110 hover:text-indigo-500 focus-visible:outline-2 focus-visible:outline-indigo-500 active:scale-90"
+              >
+                <span class="group-data-[visible]/pw:hidden"
+                  ><svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.6"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"
+                    />
+                    <circle cx="12" cy="12" r="3" /></svg
+                ></span>
+                <span class="hidden group-data-[visible]/pw:block"
+                  ><svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.6"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M3 3l18 18M6.6 6.6A17 17 0 0 0 2 12s3.6 7 10 7a10 10 0 0 0 4-.8M10 5.1A10 10 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4"
+                    />
+                    <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" /></svg
+                ></span>
+              </button>
+            </div>
+            <p
+              data-error
+              role="alert"
+              class="mt-0.5 text-[11px] text-red-600 empty:hidden"
+            ></p>
+          </div>
+        </section>
+        <div class="mt-6 flex items-center justify-between">
+          <button
+            type="button"
+            id="cancel-password"
+            class="btn border-2 border-slate-800 bg-white px-[25px] py-2.5 text-base font-semibold text-slate-800 hover:bg-slate-800 hover:text-white"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            class="btn btn-indigo px-6 py-2.5 text-base font-semibold"
+          >
+            Save Change
+          </button>
+        </div>
+      </form>
+    </main>
+
+    <div
+      id="toast"
+      role="status"
+      aria-live="polite"
+      class="pointer-events-none fixed bottom-6 left-1/2 z-50 -translate-x-1/2 translate-y-4 rounded-lg bg-slate-900 px-4 py-2.5 text-sm text-white opacity-0 shadow-lg transition-all duration-300 data-[open]:translate-y-0 data-[open]:opacity-100"
+    ></div>
+  </body>
+</html>

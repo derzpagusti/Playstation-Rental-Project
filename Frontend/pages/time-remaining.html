@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Time Remaining Status - NovaPS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/time-remaining.css" />
+    <script
+      src="../js/shared/session.js"
+      data-require-login="login.html"
+    ></script>
+    <script src="../js/shared/navbar.js" defer></script>
+    <script src="../js/shared/tabs.js" defer></script>
+    <script src="../js/time-remaining.js" defer></script>
+  </head>
+  <body
+    class="min-h-screen bg-slate-50 text-slate-800"
+    data-logout-redirect="../index.html"
+  >
+    <header class="h-[68px] bg-slate-900">
+      <div class="wrap flex h-full items-center justify-between">
+        <a
+          href="../index.html"
+          aria-label="NovaPS home"
+          class="group flex items-center gap-2.5 font-display text-2xl font-bold text-white transition-transform duration-150 active:scale-95"
+        >
+          <span
+            class="grid size-[30px] place-items-center rounded-[7px] bg-cyan-400 transition-transform duration-300 ease-[cubic-bezier(.3,1.6,.5,1)] group-hover:-rotate-[8deg] group-hover:scale-110"
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#0f172a"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <rect x="2" y="6" width="20" height="12" rx="3" />
+              <path d="M6 12h4M8 10v4" />
+              <circle cx="15.5" cy="11" r=".6" />
+              <circle cx="17.5" cy="13" r=".6" />
+            </svg>
+          </span>
+          Nova<span class="text-cyan-400">PS</span>
+        </a>
+        <nav
+          class="flex items-center gap-1.5 sm:gap-[18px]"
+          aria-label="Account"
+        >
+          <div class="group/tip relative">
+            <a
+              href="time-remaining.html"
+              class="icon-btn aria-[current=page]:bg-tip"
+              aria-label="Time Remaining"
+              aria-describedby="tip-time"
+              aria-current="page"
+              ><svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 6v6l4 2" /></svg
+            ></a>
+            <span id="tip-time" role="tooltip" class="tooltip"
+              ><span class="block text-sm font-medium">Time Remaining</span
+              ><span class="block text-xs text-sky-200"
+                >See how much rental time is left</span
+              ></span
+            >
+          </div>
+          <div class="group/tip relative">
+            <a
+              href="order-status.html"
+              class="icon-btn aria-[current=page]:bg-tip"
+              aria-label="Order Status"
+              aria-describedby="tip-orders"
+              ><svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="5" y="3" width="14" height="18" rx="2" />
+                <path d="M9 3h6v3H9zM9 11h6M9 15h6" /></svg
+            ></a>
+            <span id="tip-orders" role="tooltip" class="tooltip"
+              ><span class="block text-sm font-medium">Order Status</span
+              ><span class="block text-xs text-sky-200"
+                >View your order history &amp; status</span
+              ></span
+            >
+          </div>
+          <div class="group group/tip relative">
+            <button
+              type="button"
+              id="profileBtn"
+              class="icon-btn w-14 border-white aria-[current=page]:bg-tip"
+              aria-haspopup="true"
+              aria-expanded="false"
+              aria-label="My Account"
+              aria-describedby="tip-account"
+            >
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <circle cx="12" cy="8" r="4" />
+                <path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7" />
+              </svg>
+            </button>
+            <span
+              id="tip-account"
+              role="tooltip"
+              class="tooltip group-data-[open]:hidden"
+              ><span class="block text-sm font-medium">My Account</span
+              ><span class="block text-xs text-sky-200"
+                >View your account details</span
+              ></span
+            >
+            <div
+              class="invisible absolute right-0 top-[50px] z-10 min-w-[140px] -translate-y-1.5 rounded-lg bg-white p-1.5 opacity-0 shadow-xl transition-all duration-200 group-data-[open]:visible group-data-[open]:translate-y-0 group-data-[open]:opacity-100"
+            >
+              <a
+                href="account.html"
+                class="block w-full rounded-md px-3 py-2 text-left text-[15px] font-medium text-slate-800 transition-colors hover:bg-slate-100"
+                >My Account</a
+              >
+              <button
+                type="button"
+                id="logoutBtn"
+                class="w-full cursor-pointer rounded-md px-3 py-2 text-left text-[15px] font-medium text-slate-800 transition-colors hover:bg-slate-100"
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        </nav>
+      </div>
+    </header>
+    <section class="bg-white">
+      <div class="wrap pt-5">
+        <a
+          href="../index.html"
+          class="inline-block text-2xl text-blue-600 underline underline-offset-4 transition-all duration-150 hover:-translate-x-1 hover:text-blue-700"
+          >&larr; Back to home</a
+        >
+        <h1 class="mt-4 mb-5 font-display text-[32px] font-bold text-black">
+          Time Remaining Status
+        </h1>
+        <div
+          id="tabs"
+          role="tablist"
+          aria-label="Time Remaining Status"
+          class="-mx-3 flex justify-between gap-2 overflow-x-auto"
+        >
+          <button
+            type="button"
+            role="tab"
+            data-tab="all"
+            aria-selected="true"
+            tabindex="0"
+            class="tab"
+          >
+            All
+          </button>
+          <button
+            type="button"
+            role="tab"
+            data-tab="4-hours"
+            aria-selected="false"
+            tabindex="-1"
+            class="tab"
+          >
+            4 Hours
+          </button>
+          <button
+            type="button"
+            role="tab"
+            data-tab="1-hour"
+            aria-selected="false"
+            tabindex="-1"
+            class="tab"
+          >
+            1 Hour
+          </button>
+          <button
+            type="button"
+            role="tab"
+            data-tab="overdue"
+            aria-selected="false"
+            tabindex="-1"
+            class="tab"
+          >
+            Overdue
+          </button>
+          <button
+            type="button"
+            role="tab"
+            data-tab="returned"
+            aria-selected="false"
+            tabindex="-1"
+            class="tab"
+          >
+            Returned
+          </button>
+        </div>
+      </div>
+    </section>
+    <main class="wrap">
+      <div class="flex flex-col items-center gap-4 pt-[130px] text-center">
+        <p
+          id="empty-message"
+          aria-live="polite"
+          class="text-2xl text-slate-500"
+        >
+          You haven’t ordered anything yet
+        </p>
+        <a
+          id="empty-cta"
+          href="../index.html#units"
+          class="btn btn-indigo px-[25px] font-semibold"
+          >Order Now</a
+        >
+      </div>
+    </main>
+  </body>
+</html>

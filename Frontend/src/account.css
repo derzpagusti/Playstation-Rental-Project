@@ -1,0 +1,16 @@
+/* pages/account.html (My Profile) -> builds to css/account.css */
+@import "tailwindcss" source(none);
+@import "./partials/shared.css";
+@import "./partials/navbar.css";
+@import "./partials/forms.css";
+@source "../pages/account.html";
+@source "../js/account.js";
+
+@layer components {
+  /* Small outlined action button (Edit, Change Password) */
+  .btn-edit {
+    @apply border-blue-600 bg-white px-3 py-0.5 text-sm font-medium text-blue-600;
+    @apply focus-visible:outline-blue-600;
+    @apply enabled:hover:bg-blue-600 enabled:hover:text-white;
+  }
+}

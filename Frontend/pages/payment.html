@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Payment Confirmation - NovaPS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/payment.css" />
+    <script
+      src="../js/shared/session.js"
+      data-require-login="login.html"
+    ></script>
+    <script src="../js/shared/navbar.js" defer></script>
+    <script src="../js/shared/orders.js" defer></script>
+    <script src="../js/shared/image.js" defer></script>
+    <script src="../js/payment.js" defer></script>
+  </head>
+  <body
+    class="min-h-screen bg-slate-50 text-slate-800"
+    data-logout-redirect="../index.html"
+  >
+    <header class="h-[68px] bg-slate-900">
+      <div class="wrap flex h-full items-center justify-between">
+        <a
+          href="../index.html"
+          aria-label="NovaPS home"
+          class="group flex items-center gap-2.5 font-display text-2xl font-bold text-white transition-transform duration-150 active:scale-95"
+        >
+          <span
+            class="grid size-[30px] place-items-center rounded-[7px] bg-cyan-400 transition-transform duration-300 ease-[cubic-bezier(.3,1.6,.5,1)] group-hover:-rotate-[8deg] group-hover:scale-110"
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#0f172a"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <rect x="2" y="6" width="20" height="12" rx="3" />
+              <path d="M6 12h4M8 10v4" />
+              <circle cx="15.5" cy="11" r=".6" />
+              <circle cx="17.5" cy="13" r=".6" />
+            </svg>
+          </span>
+          Nova<span class="text-cyan-400">PS</span>
+        </a>
+        <nav
+          class="flex items-center gap-1.5 sm:gap-[18px]"
+          aria-label="Account"
+        >
+          <div class="group/tip relative">
+            <a
+              href="time-remaining.html"
+              class="icon-btn aria-[current=page]:bg-tip"
+              aria-label="Time Remaining"
+              aria-describedby="tip-time"
+              ><svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 6v6l4 2" /></svg
+            ></a>
+            <span id="tip-time" role="tooltip" class="tooltip"
+              ><span class="block text-sm font-medium">Time Remaining</span
+              ><span class="block text-xs text-sky-200"
+                >See how much rental time is left</span
+              ></span
+            >
+          </div>
+          <div class="group/tip relative">
+            <a
+              href="order-status.html"
+              class="icon-btn aria-[current=page]:bg-tip"
+              aria-label="Order Status"
+              aria-describedby="tip-orders"
+              ><svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="5" y="3" width="14" height="18" rx="2" />
+                <path d="M9 3h6v3H9zM9 11h6M9 15h6" /></svg
+            ></a>
+            <span id="tip-orders" role="tooltip" class="tooltip"
+              ><span class="block text-sm font-medium">Order Status</span
+              ><span class="block text-xs text-sky-200"
+                >View your order history &amp; status</span
+              ></span
+            >
+          </div>
+          <div class="group group/tip relative">
+            <button
+              type="button"
+              id="profileBtn"
+              class="icon-btn w-14 border-white aria-[current=page]:bg-tip"
+              aria-haspopup="true"
+              aria-expanded="false"
+              aria-label="My Account"
+              aria-describedby="tip-account"
+            >
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <circle cx="12" cy="8" r="4" />
+                <path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7" />
+              </svg>
+            </button>
+            <span
+              id="tip-account"
+              role="tooltip"
+              class="tooltip group-data-[open]:hidden"
+              ><span class="block text-sm font-medium">My Account</span
+              ><span class="block text-xs text-sky-200"
+                >View your account details</span
+              ></span
+            >
+            <div
+              class="invisible absolute right-0 top-[50px] z-10 min-w-[140px] -translate-y-1.5 rounded-lg bg-white p-1.5 opacity-0 shadow-xl transition-all duration-200 group-data-[open]:visible group-data-[open]:translate-y-0 group-data-[open]:opacity-100"
+            >
+              <a
+                href="account.html"
+                class="block w-full rounded-md px-3 py-2 text-left text-[15px] font-medium text-slate-800 transition-colors hover:bg-slate-100"
+                >My Account</a
+              >
+              <button
+                type="button"
+                id="logoutBtn"
+                class="w-full cursor-pointer rounded-md px-3 py-2 text-left text-[15px] font-medium text-slate-800 transition-colors hover:bg-slate-100"
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        </nav>
+      </div>
+    </header>
+    <main class="mx-auto w-[896px] max-w-[calc(100%-2rem)] pt-5 pb-16">
+      <a
+        href="../index.html"
+        class="inline-block text-2xl text-blue-600 underline underline-offset-4 transition-all duration-150 hover:-translate-x-1 hover:text-blue-700"
+        >&larr; Back to Home</a
+      >
+      <h1
+        class="my-6 text-center font-display text-[32px] font-bold text-black"
+      >
+        Payment Confirmation
+      </h1>
+
+      <div class="grid items-start gap-6 md:grid-cols-[412px_1fr]">
+        <section
+          class="rounded-lg border border-slate-200 bg-white p-6 text-center"
+        >
+          <h2 class="font-display text-base font-bold text-black">Scan Qris</h2>
+          <p
+            id="countdown"
+            aria-live="off"
+            class="mt-5 font-display text-5xl font-bold text-black transition-colors duration-300"
+          >
+            05:00
+          </p>
+          <p class="mt-1 text-[11px] text-slate-400">
+            Please pay before time runs out
+          </p>
+          <img
+            src="../assets/img/qris.png"
+            alt="QRIS payment code"
+            width="284"
+            height="480"
+            class="mx-auto mt-6 w-[285px] max-w-full"
+          />
+          <p
+            id="amount"
+            class="mt-4 font-display text-2xl font-bold text-black"
+          ></p>
+          <p class="mx-auto mt-1 max-w-[260px] text-[11px] text-slate-400">
+            Open your e-wallet or banking app, scan the code, and then pay the
+            total amount.
+          </p>
+
+          <div data-field class="group/field mt-5 text-left">
+            <label for="proof" class="mb-0.5 block text-base"
+              >Proof of Payment</label
+            >
+            <label
+              for="proof"
+              data-upload
+              class="group/upload relative grid h-24 cursor-pointer place-items-center overflow-hidden rounded-lg border-[1.5px] border-dashed border-slate-300 bg-white text-slate-300 transition-all duration-150 hover:border-indigo-500 hover:bg-indigo-50 hover:text-indigo-500 focus-within:ring-[3px] focus-within:ring-indigo-500/20 group-data-[invalid]/field:border-red-600 data-[has-image]:h-64"
+            >
+              <svg
+                class="group-data-[has-image]/upload:hidden"
+                width="28"
+                height="28"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="3" y="4" width="18" height="16" rx="2" />
+                <circle cx="9" cy="10" r="1.5" />
+                <path d="m21 16-5-5-9 9" />
+              </svg>
+              <img
+                alt="Proof of payment preview"
+                class="hidden size-full object-contain group-data-[has-image]/upload:block"
+              />
+              <input
+                type="file"
+                id="proof"
+                name="proof"
+                accept="image/*"
+                class="absolute inset-0 cursor-pointer opacity-0"
+              />
+            </label>
+            <p class="mt-0.5 text-[10px] text-slate-400">
+              Upload a screenshot or photo of your QRIS payment.
+            </p>
+            <p
+              data-error
+              role="alert"
+              class="mt-0.5 text-[11px] text-red-600 empty:hidden"
+            ></p>
+          </div>
+        </section>
+
+        <section class="rounded-lg border border-slate-200 bg-white p-6">
+          <h2 class="font-display text-base font-bold text-black mb-3">
+            Order Summary
+          </h2>
+          <div id="summary-rows"></div>
+        </section>
+      </div>
+
+      <div class="mt-6 flex items-center justify-between">
+        <button
+          type="button"
+          id="cancel-btn"
+          class="btn border-2 border-red-600 bg-white px-[25px] py-2.5 text-base font-semibold text-red-600 hover:bg-red-600 hover:text-white"
+        >
+          Cancel Order
+        </button>
+        <button
+          type="button"
+          id="send-btn"
+          disabled
+          class="btn btn-indigo px-6 py-2.5 text-base font-semibold"
+        >
+          Send payment
+        </button>
+      </div>
+    </main>
+
+    <!-- Cancel reason pop-up -->
+    <div
+      id="cancelModal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="cancelTitle"
+      aria-hidden="true"
+      class="group invisible fixed inset-0 z-50 grid place-items-center bg-slate-950/60 p-6 opacity-0 transition-all duration-200 data-[open]:visible data-[open]:opacity-100"
+    >
+      <div
+        class="w-full max-w-[420px] translate-y-4 scale-95 rounded-xl bg-white px-7 pb-7 pt-8 transition-transform duration-300 ease-[cubic-bezier(.2,.9,.3,1.2)] group-data-[open]:translate-y-0 group-data-[open]:scale-100"
+      >
+        <h2 id="cancelTitle" class="font-display text-2xl font-bold">
+          Cancel this order?
+        </h2>
+        <p class="mt-1 text-slate-500">
+          Please tell us why you want to cancel. The unit will go back to stock.
+        </p>
+        <div class="mt-4 flex flex-wrap gap-2">
+          <button
+            type="button"
+            data-reason="Changed my mind"
+            class="cursor-pointer rounded-full border border-slate-300 px-3 py-1 text-xs text-slate-600 transition-all duration-150 hover:-translate-y-0.5 hover:border-indigo-500 hover:text-indigo-600 active:scale-95"
+          >
+            Changed my mind
+          </button>
+          <button
+            type="button"
+            data-reason="Wrong unit or duration"
+            class="cursor-pointer rounded-full border border-slate-300 px-3 py-1 text-xs text-slate-600 transition-all duration-150 hover:-translate-y-0.5 hover:border-indigo-500 hover:text-indigo-600 active:scale-95"
+          >
+            Wrong unit or duration
+          </button>
+          <button
+            type="button"
+            data-reason="Payment problem"
+            class="cursor-pointer rounded-full border border-slate-300 px-3 py-1 text-xs text-slate-600 transition-all duration-150 hover:-translate-y-0.5 hover:border-indigo-500 hover:text-indigo-600 active:scale-95"
+          >
+            Payment problem
+          </button>
+        </div>
+        <div data-field class="group/field mt-3">
+          <label for="reason" class="mb-0.5 block text-base">Reason</label>
+          <textarea
+            id="reason"
+            rows="3"
+            maxlength="200"
+            placeholder="Write your reason here"
+            class="field-input h-auto resize-none py-2"
+          ></textarea>
+          <p
+            data-error
+            role="alert"
+            class="mt-0.5 text-[11px] text-red-600 empty:hidden"
+          ></p>
+        </div>
+        <div class="mt-5 flex gap-3">
+          <button
+            type="button"
+            data-close
+            class="btn btn-ghost flex-1 px-0 py-[11px] text-base"
+          >
+            Keep order
+          </button>
+          <button
+            type="button"
+            id="confirm-cancel"
+            class="btn flex-1 bg-red-600 px-0 py-[11px] text-base text-white"
+          >
+            Cancel order
+          </button>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
