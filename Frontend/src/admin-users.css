@@ -1,0 +1,8 @@
+/* admin/users.html -> builds to css/admin-users.css */
+@import "tailwindcss" source(none);
+@import "./partials/shared.css";
+@import "./partials/forms.css";
+@import "./partials/admin.css";
+@source "../admin/users.html";
+@source "../js/admin-users.js";
+@source "../js/shared/admin-ui.js";

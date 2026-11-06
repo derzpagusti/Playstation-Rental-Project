@@ -1,0 +1,7 @@
+/* admin/time-remaining.html -> builds to css/admin-time-remaining.css */
+@import "tailwindcss" source(none);
+@import "./partials/shared.css";
+@import "./partials/forms.css";
+@import "./partials/admin.css";
+@source "../admin/time-remaining.html";
+@source "../js/shared/admin-ui.js";

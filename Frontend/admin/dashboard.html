@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dashboard - NovaPS Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/admin-dashboard.css" />
+    <script src="../js/shared/session.js"></script>
+    <script
+      src="../js/shared/admin.js"
+      data-require-admin="login.html"
+    ></script>
+    <script src="../js/shared/orders.js" defer></script>
+    <script src="../js/shared/admin-ui.js" defer></script>
+    <script src="../js/admin-dashboard.js" defer></script>
+  </head>
+  <body class="min-h-screen bg-slate-100 text-slate-800">
+    <header
+      class="flex h-[68px] items-center justify-between bg-slate-900 px-4 md:px-[50px]"
+    >
+      <a
+        href="dashboard.html"
+        aria-label="NovaPS"
+        class="group flex items-center gap-2.5 font-display text-2xl font-bold text-white transition-transform duration-150 active:scale-95"
+      >
+        <span
+          class="grid size-[30px] place-items-center rounded-[7px] bg-cyan-400 transition-transform duration-300 ease-[cubic-bezier(.3,1.6,.5,1)] group-hover:-rotate-[8deg] group-hover:scale-110"
+          ><svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#0f172a"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <rect x="2" y="6" width="20" height="12" rx="3" />
+            <path d="M6 12h4M8 10v4" />
+            <circle cx="15.5" cy="11" r=".6" />
+            <circle cx="17.5" cy="13" r=".6" /></svg
+        ></span>
+        Nova<span class="text-cyan-400">PS</span>
+      </a>
+      <div class="group relative">
+        <button
+          type="button"
+          id="adminBtn"
+          aria-haspopup="true"
+          aria-expanded="false"
+          class="btn btn-outline flex items-center gap-2 rounded-md px-4 py-1.5 text-lg font-normal"
+        >
+          Admin
+          <svg
+            width="22"
+            height="22"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <circle cx="12" cy="8" r="4" />
+            <path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7" />
+          </svg>
+        </button>
+        <div
+          class="invisible absolute right-0 top-[50px] z-30 min-w-[140px] -translate-y-1.5 rounded-lg bg-white p-1.5 opacity-0 shadow-xl transition-all duration-200 group-data-[open]:visible group-data-[open]:translate-y-0 group-data-[open]:opacity-100"
+        >
+          <a
+            href="../index.html"
+            class="block w-full rounded-md px-3 py-2 text-left text-[15px] font-medium text-slate-800 transition-colors hover:bg-slate-100"
+            >View website</a
+          >
+          <button
+            type="button"
+            id="adminLogout"
+            class="w-full cursor-pointer rounded-md px-3 py-2 text-left text-[15px] font-medium text-slate-800 transition-colors hover:bg-slate-100"
+          >
+            Logout
+          </button>
+        </div>
+      </div>
+    </header>
+    <div class="md:grid md:grid-cols-[256px_1fr]">
+      <aside class="bg-slate-900 md:min-h-[calc(100vh-68px)]">
+        <nav
+          aria-label="Admin menu"
+          class="flex gap-1 overflow-x-auto p-3 md:flex-col md:p-6"
+        >
+          <a
+            href="dashboard.html"
+            class="block rounded-md px-4 py-2 text-base whitespace-nowrap text-slate-300 transition-all duration-150 hover:translate-x-0.5 hover:bg-white/10 hover:text-white active:scale-[.98] aria-[current=page]:bg-indigo-500 aria-[current=page]:font-semibold aria-[current=page]:text-white aria-[current=page]:hover:translate-x-0"
+            aria-current="page"
+            >Dashboard</a
+          >
+          <a
+            href="orders.html"
+            class="block rounded-md px-4 py-2 text-base whitespace-nowrap text-slate-300 transition-all duration-150 hover:translate-x-0.5 hover:bg-white/10 hover:text-white active:scale-[.98] aria-[current=page]:bg-indigo-500 aria-[current=page]:font-semibold aria-[current=page]:text-white aria-[current=page]:hover:translate-x-0"
+            >Orders</a
+          >
+          <a
+            href="time-remaining.html"
+            class="block rounded-md px-4 py-2 text-base whitespace-nowrap text-slate-300 transition-all duration-150 hover:translate-x-0.5 hover:bg-white/10 hover:text-white active:scale-[.98] aria-[current=page]:bg-indigo-500 aria-[current=page]:font-semibold aria-[current=page]:text-white aria-[current=page]:hover:translate-x-0"
+            >Time Remaining</a
+          >
+          <a
+            href="units.html"
+            class="block rounded-md px-4 py-2 text-base whitespace-nowrap text-slate-300 transition-all duration-150 hover:translate-x-0.5 hover:bg-white/10 hover:text-white active:scale-[.98] aria-[current=page]:bg-indigo-500 aria-[current=page]:font-semibold aria-[current=page]:text-white aria-[current=page]:hover:translate-x-0"
+            >Unit</a
+          >
+          <a
+            href="users.html"
+            class="block rounded-md px-4 py-2 text-base whitespace-nowrap text-slate-300 transition-all duration-150 hover:translate-x-0.5 hover:bg-white/10 hover:text-white active:scale-[.98] aria-[current=page]:bg-indigo-500 aria-[current=page]:font-semibold aria-[current=page]:text-white aria-[current=page]:hover:translate-x-0"
+            >Users</a
+          >
+        </nav>
+      </aside>
+      <main class="min-w-0 p-4 md:p-6">
+        <h1 class="font-display text-[32px] font-bold text-slate-800">
+          Dashboard
+        </h1>
+        <section
+          aria-label="Order status totals"
+          class="mt-5 grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6"
+        >
+          <a
+            href="orders.html?status=not_paid"
+            data-count="not_paid"
+            class="rounded-lg bg-white px-4 py-4 transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md active:scale-[.98]"
+          >
+            <p class="text-base text-slate-500">Not Paid</p>
+            <p
+              data-value
+              class="font-display text-[32px] leading-tight font-bold text-slate-800"
+            >
+              0
+            </p>
+          </a>
+          <a
+            href="orders.html?status=pending"
+            data-count="pending"
+            class="rounded-lg bg-white px-4 py-4 transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md active:scale-[.98]"
+          >
+            <p class="text-base text-slate-500">Pending</p>
+            <p
+              data-value
+              class="font-display text-[32px] leading-tight font-bold text-slate-800"
+            >
+              0
+            </p>
+          </a>
+          <a
+            href="orders.html?status=shipped"
+            data-count="shipped"
+            class="rounded-lg bg-white px-4 py-4 transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md active:scale-[.98]"
+          >
+            <p class="text-base text-slate-500">Shipping</p>
+            <p
+              data-value
+              class="font-display text-[32px] leading-tight font-bold text-slate-800"
+            >
+              0
+            </p>
+          </a>
+          <a
+            href="orders.html?status=complete"
+            data-count="completed"
+            class="rounded-lg bg-white px-4 py-4 transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md active:scale-[.98]"
+          >
+            <p class="text-base text-slate-500">Completed</p>
+            <p
+              data-value
+              class="font-display text-[32px] leading-tight font-bold text-slate-800"
+            >
+              0
+            </p>
+          </a>
+          <a
+            href="orders.html?status=canceled"
+            data-count="canceled"
+            class="rounded-lg bg-white px-4 py-4 transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md active:scale-[.98]"
+          >
+            <p class="text-base text-slate-500">Canceled</p>
+            <p
+              data-value
+              class="font-display text-[32px] leading-tight font-bold text-slate-800"
+            >
+              0
+            </p>
+          </a>
+          <a
+            href="orders.html?status=rejected"
+            data-count="rejected"
+            class="rounded-lg bg-white px-4 py-4 transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md active:scale-[.98]"
+          >
+            <p class="text-base text-slate-500">Rejected</p>
+            <p
+              data-value
+              class="font-display text-[32px] leading-tight font-bold text-slate-800"
+            >
+              0
+            </p>
+          </a>
+        </section>
+
+        <section class="mt-6 rounded-lg bg-white p-6">
+          <div class="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 class="font-display text-xl font-bold text-black">
+              Need Verification
+            </h2>
+            <p class="text-sm text-slate-500">
+              Pending payments to accept, and shipped orders to confirm once the
+              unit is in the customer’s hands.
+            </p>
+          </div>
+          <div class="mt-4 overflow-x-auto">
+            <table class="w-full min-w-[760px] text-left">
+              <thead id="queue-head"></thead>
+              <tbody id="queue-body"></tbody>
+            </table>
+          </div>
+          <p id="queue-empty" hidden class="py-8 text-center text-slate-500">
+            Nothing to verify right now.
+          </p>
+          <div class="mt-4 text-center">
+            <a href="orders.html" class="btn btn-indigo px-3 py-1 text-base"
+              >View All Orders</a
+            >
+          </div>
+        </section>
+
+        <section
+          aria-label="Sales"
+          class="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
+        >
+          <div class="rounded-lg bg-white p-4">
+            <p class="text-sm text-slate-500">Total units rented</p>
+            <p
+              data-metric="units-total"
+              class="mt-1 font-display text-2xl font-bold text-slate-800"
+            >
+              0
+            </p>
+            <p class="mt-0.5 text-xs text-slate-400">Completed orders</p>
+          </div>
+          <div class="rounded-lg bg-white p-4">
+            <p class="text-sm text-slate-500">Units this month</p>
+            <p
+              data-metric="units-month"
+              class="mt-1 font-display text-2xl font-bold text-slate-800"
+            >
+              0
+            </p>
+            <p class="mt-0.5 text-xs text-slate-400">Completed orders</p>
+          </div>
+          <div class="rounded-lg bg-white p-4">
+            <p class="text-sm text-slate-500">Total income</p>
+            <p
+              data-metric="revenue-total"
+              class="mt-1 font-display text-2xl font-bold text-slate-800"
+            >
+              0
+            </p>
+            <p class="mt-0.5 text-xs text-slate-400">Completed orders</p>
+          </div>
+          <div class="rounded-lg bg-white p-4">
+            <p class="text-sm text-slate-500">Income this month</p>
+            <p
+              data-metric="revenue-month"
+              class="mt-1 font-display text-2xl font-bold text-slate-800"
+            >
+              0
+            </p>
+            <p class="mt-0.5 text-xs text-slate-400">Completed orders</p>
+          </div>
+        </section>
+
+        <section class="mt-6 rounded-lg bg-white p-6">
+          <div class="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 class="font-display text-xl font-bold text-black">
+              Monthly performance
+            </h2>
+            <p class="text-sm text-slate-500">
+              In progress (paid, not completed yet):
+              <strong id="in-progress" class="text-slate-800">Rp 0</strong>
+            </p>
+          </div>
+          <div class="mt-4 overflow-x-auto">
+            <table class="w-full min-w-[620px] text-left">
+              <thead id="month-head"></thead>
+              <tbody id="month-body"></tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+    <div
+      id="orderModal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="orderModalTitle"
+      aria-hidden="true"
+      class="group invisible fixed inset-0 z-50 grid place-items-center bg-slate-950/60 p-4 opacity-0 transition-all duration-200 data-[open]:visible data-[open]:opacity-100"
+    >
+      <div
+        class="max-h-[92vh] w-full max-w-[580px] translate-y-4 scale-95 overflow-y-auto rounded-xl bg-white p-6 transition-transform duration-300 ease-[cubic-bezier(.2,.9,.3,1.2)] group-data-[open]:translate-y-0 group-data-[open]:scale-100"
+      >
+        <div class="flex items-start justify-between gap-4">
+          <h2
+            id="orderModalTitle"
+            class="font-display text-xl font-bold text-black"
+          >
+            Order Detail
+          </h2>
+          <button
+            type="button"
+            data-close
+            aria-label="Close"
+            class="grid size-8 shrink-0 cursor-pointer place-items-center rounded-md text-slate-500 transition-all duration-150 hover:scale-110 hover:bg-slate-100 hover:text-slate-900 active:scale-90"
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </button>
+        </div>
+        <div id="orderBody" class="mt-3"></div>
+        <div id="rejectBox" hidden class="mt-4 rounded-md bg-red-50 p-3">
+          <label
+            for="rejectReason"
+            class="mb-0.5 block text-sm font-medium text-red-800"
+            >Why is this order rejected?</label
+          >
+          <textarea
+            id="rejectReason"
+            rows="2"
+            maxlength="200"
+            placeholder="The customer will see this reason"
+            class="field-input h-auto resize-none py-2"
+          ></textarea>
+          <p
+            id="rejectError"
+            role="alert"
+            class="mt-0.5 text-[11px] text-red-600 empty:hidden"
+          ></p>
+          <button
+            type="button"
+            id="confirmReject"
+            class="btn mt-2 bg-red-600 px-4 py-2 text-sm font-semibold text-white"
+          >
+            Confirm reject
+          </button>
+        </div>
+        <div
+          id="orderActions"
+          class="mt-5 flex flex-wrap justify-end gap-3"
+        ></div>
+      </div>
+    </div>
+    <div
+      id="toast"
+      role="status"
+      aria-live="polite"
+      class="pointer-events-none fixed bottom-6 left-1/2 z-[60] -translate-x-1/2 translate-y-4 rounded-lg bg-slate-900 px-4 py-2.5 text-sm text-white opacity-0 shadow-lg transition-all duration-300 data-[open]:translate-y-0 data-[open]:opacity-100"
+    ></div>
+  </body>
+</html>

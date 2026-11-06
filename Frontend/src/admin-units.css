@@ -1,0 +1,8 @@
+/* admin/units.html -> builds to css/admin-units.css */
+@import "tailwindcss" source(none);
+@import "./partials/shared.css";
+@import "./partials/forms.css";
+@import "./partials/admin.css";
+@source "../admin/units.html";
+@source "../js/admin-units.js";
+@source "../js/shared/admin-ui.js";

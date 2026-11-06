@@ -1,0 +1,19 @@
+/* Buttons used inside the admin tables and pop-ups. */
+
+@layer components {
+  .btn-mini {
+    @apply border bg-white px-2.5 py-0.5 text-xs font-semibold;
+  }
+  .btn-mini-blue {
+    @apply border-blue-600 text-blue-600 focus-visible:outline-blue-600;
+    @apply enabled:hover:bg-blue-600 enabled:hover:text-white;
+  }
+  .btn-mini-green {
+    @apply border-green-600 text-green-700 focus-visible:outline-green-600;
+    @apply enabled:hover:bg-green-600 enabled:hover:text-white;
+  }
+  .btn-mini-red {
+    @apply border-red-600 text-red-600 focus-visible:outline-red-600;
+    @apply enabled:hover:bg-red-600 enabled:hover:text-white;
+  }
+}
