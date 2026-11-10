@@ -48,26 +48,31 @@ function device_is_held(PDO $pdo, int $deviceId): bool
     return (bool)$stmt->fetchColumn();
 }
 
-function slot_is_free(PDO $pdo, int $deviceId, string $startDb, string $endDb): bool
-{
+function slot_is_free(PDO $pdo, int $deviceId, string $startDb, string $endDb): bool {
     $stmt = $pdo->prepare(
         "SELECT NOT EXISTS (
             SELECT 1
             FROM rental r
             JOIN booking b ON b.booking_id = r.booking_id
             WHERE r.device_id = :device_id
-              AND r.rental_status <> 'Returned'
+              AND r.rental_status IN ('Booked', 'Rented', 'Overdue')
+              AND b.payment_status IN ('Pending', 'AwaitingVerification', 'Paid')
+              AND (
+                  b.payment_status <> 'Pending'
+                  OR b.payment_expires_at IS NULL
+                  OR b.payment_expires_at > statement_timestamp()
+              )
               AND r.start_time < CAST(:end_db AS timestamptz)
               AND r.end_time > CAST(:start_db AS timestamptz)
-              AND b.payment_status <> 'Expired'
         )"
     );
     $stmt->execute([
         'device_id' => $deviceId,
         'start_db' => $startDb,
-        'end_db' => $endDb,
+        'end_db' => $endDb
     ]);
-    return (bool)$stmt->fetchColumn();
+
+    return (bool) $stmt->fetchColumn();
 }
 
 function mark_overdue(PDO $pdo): void
@@ -96,18 +101,18 @@ function build_timeline(array $row): array
 
 function expire_unpaid_bookings(PDO $pdo): void
 {
-    $pdo->exec("
-        WITH expired AS (
+    $pdo->exec(
+        "WITH expired AS (
             UPDATE booking
             SET payment_status = 'Expired'
             WHERE payment_status = 'Pending'
               AND payment_expires_at IS NOT NULL
-              AND payment_expires_at <= now()
+              AND payment_expires_at <= statement_timestamp()
             RETURNING booking_id
         )
         UPDATE rental
         SET rental_status = 'Cancelled'
         WHERE booking_id IN (SELECT booking_id FROM expired)
-          AND rental_status = 'Booked'
-    ");
+          AND rental_status = 'Booked'"
+    );
 }

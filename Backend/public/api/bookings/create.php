@@ -348,7 +348,7 @@ try {
             'payment' => [
                 'status' => $payment['payment_status'],
                 'expires_at' => $payment['payment_expires_at'],
-                'seconds_left' => $payment['seconds_left'] !== null ? (int) $payment['seconds_left'] : null,
+                'seconds_left' => $payment['payment_expires_at'] !== null ? (int) $payment['seconds_left'] : null,
             ]
         ]
     ], 201);
