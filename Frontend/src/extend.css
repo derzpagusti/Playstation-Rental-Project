@@ -1,0 +1,9 @@
+/* pages/extend.html -> builds to css/extend.css */
+@import "tailwindcss" source(none);
+@import "./partials/shared.css";
+@import "./partials/navbar.css";
+@import "./partials/forms.css";
+@source "../pages/extend.html";
+@source "../js/extend.js";
+@source "../js/shared/orders.js";
+@source "../js/shared/rental-alerts.js";
