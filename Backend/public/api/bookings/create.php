@@ -124,7 +124,18 @@ $maxActiveBookings = (int) (env('BOOKING_MAX_ACTIVE', 2) ?: 2);
 
 // 3. Transaksi Database
 try {
+    expire_unpaid_bookings($pdo);
+
     $pdo->beginTransaction();
+
+    $stmtNewUser = $pdo->prepare(
+        "INSERT INTO users (role, full_name, phone)
+               VALUES ('customer', :full_name, :phone) ON CONFLICT (phone) DO NOTHING"
+    );
+    $stmtNewUser->execute([
+        'full_name' => $fullName,
+        'phone' => $phone,
+    ]);
 
     // a. Cari user berdasarkan nomor HP dan kunci barisnya (FOR UPDATE)
     $stmtUser = $pdo->prepare("SELECT user_id, role 
@@ -143,10 +154,11 @@ try {
 
         // b. Cek batas pesanan aktif untuk customer yang sudah ada
         $stmtActive = $pdo->prepare("SELECT COUNT(DISTINCT b.booking_id)
-                                     FROM booking b
-                                     JOIN rental r ON r.booking_id = b.booking_id
-                                     WHERE b.customer_id = :customer_id
-                                       AND r.rental_status <> 'Returned'");
+                             FROM booking b
+                             JOIN rental r ON r.booking_id = b.booking_id
+                             WHERE b.customer_id = :customer_id
+                               AND r.rental_status IN ('Booked', 'Rented', 'Overdue')
+                               AND b.payment_status NOT IN ('Expired', 'Rejected', 'Cancelled')");
         $stmtActive->execute(['customer_id' => $customerId]);
         $activeBookings = (int) $stmtActive->fetchColumn();
 
@@ -159,24 +171,33 @@ try {
             );
         }
     } else {
-        $stmtNewUser = $pdo->prepare("INSERT INTO users (role, full_name, phone) 
-                                      VALUES ('customer', :full_name, :phone) 
-                                      RETURNING user_id");
-        $stmtNewUser->execute([
-            'full_name' => $fullName,
-            'phone'     => $phone
-        ]);
-        $customerId = (int) $stmtNewUser->fetchColumn();
+        throw new RuntimeException('Customer tidak ditemukan setelah diproses');
     }
 
-    // c. Insert ke tabel booking (booking_channel selalu 'Online')
-    $stmtBooking = $pdo->prepare("INSERT INTO booking (customer_id, booking_channel, payment_method) 
-                                  VALUES (:customer_id, 'Online', :payment_method)
-                                  RETURNING booking_id, booking_code");
+    $paymentWindow = filter_var(
+        env('PAYMENT_WINDOW_MINUTES', 5),
+        FILTER_VALIDATE_INT,
+        ['options' => ['min_range' => 1]]
+    );
+
+    if ($paymentWindow === false) {
+        throw new RuntimeException('PAYMENT_WINDOW_MINUTES harus berupa bilangan bulat positif');
+    }
+
+    $windowMinutes = $paymentMethod === 'Cash' ? null : $paymentWindow;
+
+    $stmtBooking = $pdo->prepare(
+        "INSERT INTO booking (
+         customer_id, booking_channel, payment_method, payment_status
+     )
+     VALUES (:customer_id, 'Online', :payment_method, 'Pending')
+     RETURNING booking_id, booking_code"
+    );
     $stmtBooking->execute([
-        'customer_id'    => $customerId,
+        'customer_id' => $customerId,
         'payment_method' => $paymentMethod
     ]);
+
     $bookingRow = $stmtBooking->fetch();
     $bookingId = (int) $bookingRow['booking_id'];
     $bookingCode = $bookingRow['booking_code'];
@@ -283,6 +304,35 @@ try {
         ];
     }
 
+    $stmtPayment = $pdo->prepare(
+        "UPDATE booking
+     SET payment_expires_at =
+         clock_timestamp() + CAST(:window AS integer) * INTERVAL '1 minute'
+     WHERE booking_id = :booking_id
+     RETURNING payment_status,
+               to_char(
+                   payment_expires_at,
+                   'YYYY-MM-DD\"T\"HH24:MI:SSTZH:TZM'
+               ) AS payment_expires_at,
+               GREATEST(
+                   0,
+                   CEIL(EXTRACT(EPOCH FROM (
+                       payment_expires_at - clock_timestamp()
+                   )))
+               )::integer AS seconds_left"
+    );
+    $stmtPayment->bindValue(
+        ':window',
+        $windowMinutes, $windowMinutes === null ? PDO::PARAM_NULL : PDO::PARAM_INT
+    );
+    $stmtPayment->bindValue(':booking_id', $bookingId, PDO::PARAM_INT);
+    $stmtPayment->execute();
+    $payment = $stmtPayment->fetch();
+
+    if (!$payment) {
+        throw new RuntimeException('Deadline pembayaran gagal di proses');
+    }
+
     // Menyelesaikan transaksi
     $pdo->commit();
 
@@ -294,11 +344,16 @@ try {
             'start_time'     => $startDt->format('Y-m-d\TH:i:s'),
             'payment_method' => $paymentMethod,
             'total_cost'     => $grandTotal,
-            'items'          => $responseItems
+            'items'          => $responseItems,
+            'payment' => [
+                'status' => $payment['payment_status'],
+                'expires_at' => $payment['payment_expires_at'],
+                'seconds_left' => $payment['seconds_left'] !== null ? (int) $payment['seconds_left'] : null,
+            ]
         ]
     ], 201);
 
-} catch (PDOException $e) {
+} catch (Throwable $e) {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }
