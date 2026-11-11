@@ -47,6 +47,11 @@ RUN cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" \
 # Normalisasi line ending script yang mungkin dibuat dari Windows.
 RUN sed -i 's/\r$//' /var/www/app/start.sh
 
+# Pastikan Apache hanya menggunakan MPM prefork.
+RUN a2dismod mpm_event mpm_worker \
+    && a2enmod mpm_prefork \
+    && apache2ctl -t
+
 ENV PORT=10000
 
 EXPOSE 10000
