@@ -12,17 +12,32 @@ $bookingId = filter_var($_GET['booking_id'] ?? null, FILTER_VALIDATE_INT, [
     'options' => ['min_range' => 1]
 ]);
 
+$rawBookingId = $_GET['booking_id'] ?? null;
+
+$bookingId = is_string($rawBookingId)
+    ? filter_var(
+        $rawBookingId,
+        FILTER_VALIDATE_INT,
+        ['options' => ['min_range' => 1]]
+    )
+    : false;
+
 if ($bookingId === false) {
-    json_error('VALIDATION_ERROR', 'Parameter booking_id harus bilangan bulat minimal 1', 422);
+    json_error(
+        'VALIDATION_ERROR',
+        'Parameter booking_id harus bilangan bulat minimal 1',
+        422
+    );
 }
 
 try {
+    expire_unpaid_bookings($pdo);
     mark_overdue($pdo);
 
     $sql = "SELECT b.booking_id,
                    b.booking_code,
                    b.booking_channel,
-                   to_char(b.created_at, 'YYYY-MM-DD\"T\"HH24:MI:SS') AS created_at,
+                   to_char(b.created_at, 'YYYY-MM-DD\"T\"HH24:MI:SSTZH:TZM') AS created_at,
                    c.full_name AS customer_name,
                    c.phone AS customer_phone,
                    c.email AS customer_email,
@@ -30,13 +45,29 @@ try {
                    (c.identity_doc_url IS NOT NULL) AS identity_doc_uploaded,
                    c.identity_doc_verified,
                    b.payment_method,
+                   b.payment_status,
+                        to_char(
+                            b.payment_expires_at,
+                            'YYYY-MM-DD\"T\"HH24:MI:SSTZH:TZM'
+                        ) AS payment_expires_at,
+                        CASE
+                            WHEN b.payment_expires_at IS NULL THEN NULL
+                            WHEN b.payment_status = 'Pending' THEN
+                                GREATEST(
+                                    0,
+                                    CEIL(EXTRACT(EPOCH FROM (
+                                        b.payment_expires_at - statement_timestamp()
+                                    )))
+                                )::integer
+                            ELSE 0
+                        END AS seconds_left,
                    (b.payment_proof_url IS NOT NULL) AS payment_proof_uploaded,
                    (b.payment_verified_at IS NOT NULL) AS payment_verified,
-                   to_char(b.payment_verified_at, 'YYYY-MM-DD\"T\"HH24:MI:SS') AS payment_verified_at,
+                   to_char(b.payment_verified_at, 'YYYY-MM-DD\"T\"HH24:MI:SSTZH:TZM') AS payment_verified_at,
                    s.full_name AS verified_by,
                    b.deposit_type,
                    b.deposit_value,
-                   to_char(b.deposit_returned_at, 'YYYY-MM-DD\"T\"HH24:MI:SS') AS deposit_returned_at,
+                   to_char(b.deposit_returned_at, 'YYYY-MM-DD\"T\"HH24:MI:SSTZH:TZM') AS deposit_returned_at,
                    r.rental_id,
                    r.device_id,
                    d.device_name,
@@ -44,17 +75,17 @@ try {
                    d.booth_code,
                    r.package_id,
                    p.package_name,
-                   to_char(r.start_time, 'YYYY-MM-DD\"T\"HH24:MI:SS') AS start_time,
-                   to_char(r.end_time, 'YYYY-MM-DD\"T\"HH24:MI:SS') AS end_time,
+                   to_char(r.start_time, 'YYYY-MM-DD\"T\"HH24:MI:SSTZH:TZM') AS start_time,
+                   to_char(r.end_time, 'YYYY-MM-DD\"T\"HH24:MI:SSTZH:TZM') AS end_time,
                    r.duration_hours,
                    r.extra_hours,
                    r.extra_cost,
-                   r.price_per_hour,
+                   r.price_per_day,
                    r.total_cost,
                    r.rental_status,
-                   to_char(r.rented_at, 'YYYY-MM-DD\"T\"HH24:MI:SS') AS rented_at,
-                   to_char(r.overdue_at, 'YYYY-MM-DD\"T\"HH24:MI:SS') AS overdue_at,
-                   to_char(r.returned_at, 'YYYY-MM-DD\"T\"HH24:MI:SS') AS returned_at,
+                   to_char(r.rented_at, 'YYYY-MM-DD\"T\"HH24:MI:SSTZH:TZM') AS rented_at,
+                   to_char(r.overdue_at, 'YYYY-MM-DD\"T\"HH24:MI:SSTZH:TZM') AS overdue_at,
+                   to_char(r.returned_at, 'YYYY-MM-DD\"T\"HH24:MI:SSTZH:TZM') AS returned_at,
                    r.condition_at_pickup,
                    r.condition_at_return,
                    r.condition_notes
@@ -92,10 +123,11 @@ try {
             'package_name'        => $row['package_name'],
             'start_time'          => $row['start_time'],
             'end_time'            => $row['end_time'],
-            'duration_hours'      => (int) $row['duration_hours'],
+            'duration_days'      => intdiv((int) $row['duration_hours'], 24),
+            'duration_hours'     => (int) $row['duration_hours'],
             'extra_hours'         => (int) $row['extra_hours'],
             'extra_cost'          => (float) $row['extra_cost'],
-            'price_per_hour'      => $row['price_per_hour'] !== null ? (float) $row['price_per_hour'] : null,
+            'price_per_day'      => $row['price_per_day'] !== null ? (float) $row['price_per_day'] : null,
             'total_cost'          => $itemCost,
             'rental_status'       => $row['rental_status'],
             'timeline'            => build_timeline($row),
@@ -121,11 +153,16 @@ try {
                 'identity_doc_verified' => (bool) $first['identity_doc_verified'],
             ],
             'payment' => [
-                'method'         => $first['payment_method'],
+                'method' => $first['payment_method'],
+                'status' => $first['payment_status'],
+                'expires_at' => $first['payment_expires_at'],
+                'seconds_left' => $first['seconds_left'] !== null
+                    ? (int) $first['seconds_left']
+                    : null,
                 'proof_uploaded' => (bool) $first['payment_proof_uploaded'],
-                'verified'       => (bool) $first['payment_verified'],
-                'verified_at'    => $first['payment_verified_at'],
-                'verified_by'    => $first['verified_by'],
+                'verified' => (bool) $first['payment_verified'],
+                'verified_at' => $first['payment_verified_at'],
+                'verified_by' => $first['verified_by'],
             ],
             'deposit' => [
                 'type'        => $first['deposit_type'],
@@ -137,6 +174,6 @@ try {
         ],
     ]);
 } catch (PDOException $e) {
-    error_log("Admin Booking Detaii API Error: " . $e->getMessage());
+    error_log("Admin Booking Detail API Error: " . $e->getMessage());
     json_error('SERVER_ERROR', 'Terjadi kesalahan internal pada server', 500);
 }
