@@ -44,12 +44,11 @@ RUN cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" \
         'date.timezone = Asia/Jakarta' \
         > "$PHP_INI_DIR/conf.d/app.ini"
 
-RUN mkdir -p uploads/payment_proof uploads/identity_docs \
-    && chown -R www-data:www-data uploads \
-    && chmod -R 750 uploads
+# Normalisasi line ending script yang mungkin dibuat dari Windows.
+RUN sed -i 's/\r$//' /var/www/app/start.sh
 
 ENV PORT=10000
 
 EXPOSE 10000
 
-CMD ["apache2-foreground"]
+CMD ["sh", "/var/www/app/start.sh"]
