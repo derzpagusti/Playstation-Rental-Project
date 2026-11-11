@@ -29,20 +29,19 @@ try {
                    ORDER BY duration_hours ASC";
     $stmtPackage = $pdo->prepare($sqlPackage);
     $stmtPackage->execute(['device_id' => $device_id]);
-    $packages = $stmtPackage->fetchAll();
+    $packages = [];
 
-    $device['price_per_day'] = (float) $device['price_per_day'];
+    foreach ($stmtPackage->fetchAll() as $package) {
+        $durationHours = (int) $package['duration_hours'];
 
-    foreach ($packages as $pkg) {
-        $pkg['package_id'] = (int) $pkg['package_id'];
-        $pkg['duration_hours'] = (int) $pkg['duration_hours'];
-        $pkg['duration_days'] = (int) $pkg['duration_days'];
-        $pkg['package_price'] = (float) $pkg['package_price'];
+        $packages[] = [
+            'package_id' => (int) $package['package_id'],
+            'package_name' => $package['package_name'],
+            'duration_days' => intdiv($durationHours, 24),
+            'duration_hours' => $durationHours,
+            'package_price' => (float) $package['package_price'],
+        ];
     }
-
-    unset($pkg);
-
-    $device['packages'] = $packages;
 
     json_response([
         'success' => true,

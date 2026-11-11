@@ -8,7 +8,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
 }
 
 if (array_key_exists('duration_hours', $_GET)) {
-    json_error('VALIDATION_ERROR', 'Gunakan duration_hours untuk durasi sewa harian', 422);
+    json_error('VALIDATION_ERROR', 'Gunakan duration_days untuk durasi sewa harian', 422);
 }
 
 $rawStartTime = $_GET['start_time'] ?? null;

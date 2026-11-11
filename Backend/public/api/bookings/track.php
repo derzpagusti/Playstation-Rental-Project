@@ -78,6 +78,7 @@ try {
                 r.duration_hours,
                 r.price_per_day,
                 r.extra_hours,
+                r.extra_cost,
                 r.total_cost,
                 r.rental_status,
                 to_char(
