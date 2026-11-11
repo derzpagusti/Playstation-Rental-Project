@@ -1,5 +1,5 @@
-INSERT INTO device (device_name, category, model, serial_number, booth_code, price_per_hour)
-VALUES ('PS3 Playbox 01', 'PS3', 'CECH-4200', 'SN-PS3-001', 'A1', 8000),
-       ('PS3 Playbox 02', 'PS3', 'CECH-4200', 'SN-PS3-002', 'A2', 8000),
-       ('PS4 Playbox 01', 'PS4', 'CUH-1200', 'SN-PS4-001', 'B1', 10000),
-       ('PS4 Playbox 02', 'PS4', 'CUH-1200', 'SN-PS4-002', 'B2', 10000);
+INSERT INTO device (device_name, category, model, serial_number, booth_code, price_per_day)
+VALUES ('PS4 Playbox 01', 'PS4', 'CUH-1200', 'SN-PS4-001', 'A1', 50000),
+       ('PS4 Playbox 02', 'PS4', 'CUH-1200', 'SN-PS4-002', 'A2', 50000),
+       ('PS5 Playbox 01', 'PS5', 'CFI-1200', 'SN-PS5-001', 'B1', 100000),
+       ('PS5 Playbox 02', 'PS5', 'CFI-1200', 'SN-PS5-002', 'B2', 100000);

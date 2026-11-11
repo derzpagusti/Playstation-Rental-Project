@@ -8,13 +8,10 @@ CREATE TABLE booking
     booking_code        VARCHAR(8)  NOT NULL UNIQUE DEFAULT UPPER(SUBSTR(MD5(RANDOM()::text || CLOCK_TIMESTAMP()::text), 1, 8)),
     customer_id         INT         NOT NULL REFERENCES users (user_id),
     staff_id            INT REFERENCES users (user_id),
-    booking_channel     VARCHAR(20) NOT NULL        DEFAULT 'Online'
-        CHECK (booking_channel IN ('Online', 'Walk-in', 'WhatsApp')),
-    created_at          TIMESTAMPTZ NOT NULL        DEFAULT NOW(),
-    payment_method      VARCHAR(20) NOT NULL
-        CHECK (payment_method IN ('QRIS', 'Transfer Bank', 'Cash')),
-    payment_status      VARCHAR(30) NOT NULL        DEFAULT 'Pending'
-        CHECK (payment_status IN ('Pending', 'AwaitingVerification', 'Paid', 'Expired', 'Rejected', 'Cancelled')),
+    booking_channel     VARCHAR(20) NOT NULL DEFAULT 'Online' CHECK (booking_channel IN ('Online', 'Walk-in', 'WhatsApp')),
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    payment_method      VARCHAR(20) NOT NULL CHECK (payment_method IN ('QRIS', 'Transfer Bank', 'Cash')),
+    payment_status      VARCHAR(30) NOT NULL DEFAULT 'Pending' CHECK (payment_status IN ('Pending', 'AwaitingVerification', 'Paid', 'Expired', 'Rejected', 'Cancelled')),
     notes               VARCHAR(255),
     cancel_reason       VARCHAR(255),
     cancelled_at        TIMESTAMPTZ,
@@ -31,8 +28,6 @@ CREATE TABLE booking
 
 );
 
-CREATE INDEX idx_booking_customer
-    ON booking (customer_id);
+CREATE INDEX idx_booking_customer ON booking (customer_id);
 
-CREATE INDEX idx_booking_payment_expiry
-    ON booking (payment_status, payment_expires_at);
+CREATE INDEX idx_booking_payment_expiry ON booking (payment_status, payment_expires_at);

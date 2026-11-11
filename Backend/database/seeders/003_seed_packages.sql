@@ -1,10 +1,11 @@
--- Satu paket nonaktif untuk menguji is_active
 INSERT INTO rental_package (device_id, package_name, duration_hours, package_price, is_active)
-SELECT d.device_id, p.name, p.hours, p.price, p.active
+SELECT d.device_id,
+       p.package_name,
+       p.duration_days * 24,
+       d.price_per_day * p.duration_days,
+       p.is_active
 FROM device d
-         JOIN (VALUES ('PS3', 'Paket Hemat 3 Jam', 3, 20000, TRUE),
-                      ('PS4', 'Paket Hemat 3 Jam', 3, 25000, TRUE),
-                      ('PS3', 'Paket Santai 6 Jam', 6, 36000, TRUE),
-                      ('PS4', 'Paket Santai 6 Jam', 6, 45000, TRUE),
-                      ('PS4', 'Paket Promo 2 Jam', 2, 15000, FALSE)) AS p(category, name, hours, price, active)
-              ON p.category = d.category;
+         CROSS JOIN (VALUES ('Paket 2 Hari', 2, TRUE),
+                            ('Paket 3 Hari', 3, TRUE),
+                            ('Paket 7 Hari', 7, FALSE)) AS p(package_name, duration_days, is_active)
+WHERE d.category IN ('PS4', 'PS5');

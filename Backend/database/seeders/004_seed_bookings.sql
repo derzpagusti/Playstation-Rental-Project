@@ -1,4 +1,4 @@
--- 1) Pesanan (header)
+-- Header booking.
 INSERT INTO booking (
     booking_code,
     customer_id,
@@ -10,132 +10,232 @@ INSERT INTO booking (
     payment_expires_at,
     payment_proof_url,
     payment_verified_at,
-    paid_at,
-    deposit_type,
-    deposit_value,
-    deposit_returned_at
+    paid_at
 )
-VALUES
-    -- DEMO0001: QRIS sudah dibayar dan diverifikasi
-    (
-        'DEMO0001',
-        (SELECT user_id FROM users WHERE phone = '081234567890'),
-        (SELECT user_id FROM users WHERE username = 'reza'),
-        'WhatsApp',
-        NOW() - INTERVAL '70 minutes',
-        'QRIS',
-        'Paid',
-        NULL,
-        'payment_proof/demo-0001.jpg',
-        NOW() - INTERVAL '55 minutes',
-        NOW() - INTERVAL '55 minutes',
-        NULL,
-        NULL,
-        NULL
+SELECT
+    sample.booking_code,
+    customer.user_id,
+    staff.user_id,
+    sample.booking_channel,
+    NOW() - sample.created_ago,
+    sample.payment_method,
+    sample.payment_status,
+    CASE
+        WHEN sample.payment_status = 'Pending'
+            AND sample.payment_method <> 'Cash'
+            THEN NOW() + INTERVAL '5 minutes'
+    ELSE NULL
+END,
+    sample.proof_path,
+    CASE
+        WHEN sample.payment_status = 'Paid'
+        THEN NOW() - sample.created_ago + INTERVAL '10 minutes'
+        ELSE NULL
+END,
+    CASE
+        WHEN sample.payment_status = 'Paid'
+        THEN NOW() - sample.created_ago + INTERVAL '10 minutes'
+        ELSE NULL
+END
+FROM (
+    VALUES
+        (
+            'DEMO0001',
+            '081234567890',
+            'reza',
+            'Online',
+            INTERVAL '25 hours',
+            'QRIS',
+            'Paid',
+            'payment_proof/demo-0001.jpg'
+        ),
+        (
+            'DEMO0002',
+            '082345678901',
+            'admin',
+            'Walk-in',
+            INTERVAL '31 hours',
+            'Cash',
+            'Paid',
+            NULL
+        ),
+        (
+            'DEMO0003',
+            '083456789012',
+            'admin',
+            'Online',
+            INTERVAL '97 hours',
+            'Transfer Bank',
+            'Paid',
+            'payment_proof/demo-0003.jpg'
+        ),
+        (
+            'DEMO0004',
+            '082345678901',
+            NULL,
+            'Online',
+            INTERVAL '0 minutes',
+            'QRIS',
+            'Pending',
+            NULL
+        ),
+        (
+            'DEMO0005',
+            '083456789012',
+            NULL,
+            'WhatsApp',
+            INTERVAL '30 minutes',
+            'Cash',
+            'Pending',
+            NULL
+        )
+) AS sample (
+    booking_code,
+    phone,
+    staff_username,
+    booking_channel,
+    created_ago,
+    payment_method,
+    payment_status,
+    proof_path
+)
+JOIN users customer
+    ON customer.phone = sample.phone
+LEFT JOIN users staff
+    ON staff.username = sample.staff_username;
+
+-- Detail rental.
+-- Durasi tetap disimpan dalam jam, dengan 1 hari = 24 jam.
+INSERT INTO rental (
+    booking_id,
+    device_id,
+    package_id,
+    start_time,
+    duration_hours,
+    end_time,
+    price_per_day,
+    total_cost,
+    rental_status,
+    rented_at,
+    overdue_at,
+    returned_at,
+    condition_at_pickup,
+    condition_at_return,
+    condition_notes
+)
+SELECT
+    b.booking_id,
+    d.device_id,
+    p.package_id,
+    NOW() + sample.start_offset,
+    sample.duration_days * 24,
+    NOW() + sample.start_offset
+        + sample.duration_days * INTERVAL '24 hours',
+    CASE
+    WHEN sample.package_name IS NULL
+    THEN d.price_per_day
+    ELSE NULL
+END,
+    COALESCE(
+        p.package_price,
+        sample.duration_days * d.price_per_day
     ),
-
-    -- DEMO0002: Cash, sudah dibayar
-    (
-        'DEMO0002',
-        (SELECT user_id FROM users WHERE phone = '082345678901'),
-        (SELECT user_id FROM users WHERE username = 'admin'),
-        'Walk-in',
-        NOW() - INTERVAL '8 hours',
-        'Cash',
-        'Paid',
-        NULL,
-        NULL,
-        NOW() - INTERVAL '8 hours',
-        NOW() - INTERVAL '8 hours',
-        'Kartu Pelajar',
-        'Kartu Pelajar a.n. Sinta Dewi',
-        NULL
-    ),
-
-    -- DEMO0003: Transfer Bank sudah dibayar dan diverifikasi
-    (
-        'DEMO0003',
-        (SELECT user_id FROM users WHERE phone = '083456789012'),
-        (SELECT user_id FROM users WHERE username = 'admin'),
-        'Online',
-        NOW() - INTERVAL '49 hours',
-        'Transfer Bank',
-        'Paid',
-        NULL,
-        'payment_proof/demo-0003.jpg',
-        NOW() - INTERVAL '48 hours 10 minutes',
-        NOW() - INTERVAL '48 hours 10 minutes',
-        'SIM',
-        'SIM a.n. Rafi Pratama',
-        NOW() - INTERVAL '46 hours'
-    ),
-
-    -- DEMO0004: QRIS, belum mengunggah bukti pembayaran
-    (
-        'DEMO0004',
-        (SELECT user_id FROM users WHERE phone = '082345678901'),
-        NULL,
-        'Online',
-        NOW(),
-        'QRIS',
-        'Pending',
-        NOW() + INTERVAL '5 minutes',
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL
-    ),
-
-    -- DEMO0005: Cash, belum diverifikasi
-    (
-        'DEMO0005',
-        (SELECT user_id FROM users WHERE phone = '083456789012'),
-        NULL,
-        'WhatsApp',
-        NOW() - INTERVAL '30 minutes',
-        'Cash',
-        'Pending',
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL
-    );
-
--- 2) Console dalam tiap pesanan (detail)
---    pkg_hours : durasi paket yang dipakai (NULL = durasi bebas)
---    start_off : jam mulai relatif terhadap sekarang (negatif = sudah lewat)
---    *_ago     : berapa lama yang lalu kejadian itu terjadi (NULL = belum terjadi)
-INSERT INTO rental (booking_id, device_id, package_id, start_time, duration_hours, end_time,
-                    price_per_hour, total_cost, extra_hours, extra_cost, rental_status,
-                    rented_at, overdue_at, returned_at,
-                    condition_at_pickup, condition_at_return, condition_notes)
-SELECT b.booking_id,
-       d.device_id,
-       p.package_id,
-       now() + v.start_off,
-       v.hours,
-       now() + v.start_off + v.hours * INTERVAL '1 hour', v.price, v.total, v.extra_h, v.extra_c, v.status, now() - v.rented_ago, now() - v.overdue_ago, now() - v.returned_ago, v.cond_pick, v.cond_ret, v.cond_note
-FROM (VALUES
-    -- DEMO0001: dua console sekaligus. PS4 paket 3 jam + perpanjangan 1 jam
-    -- (durasi 4 jam, 25.000 + 10.000). PS3 durasi bebas 2 jam
-    ('DEMO0001', 'SN-PS4-001', 3, INTERVAL '-1 hour', 4, NULL, 35000, 1, 10000, 'Rented', INTERVAL '55 minutes', NULL, NULL, NULL, NULL, NULL), ('DEMO0001', 'SN-PS3-002', NULL, INTERVAL '-1 hour', 2, 8000, 16000, 0, 0, 'Rented', INTERVAL '55 minutes', NULL, NULL, NULL, NULL, NULL),
-    -- DEMO0002: sudah lewat batas waktu
-    ('DEMO0002', 'SN-PS3-001', NULL, INTERVAL '-8 hours', 5, 8000, 40000, 0, 0, 'Overdue', INTERVAL '7 hours 59 minutes', INTERVAL '3 hours', NULL, NULL, NULL, NULL),
-    -- DEMO0003: sudah selesai, kondisi barang dicatat
-    ('DEMO0003', 'SN-PS4-002', NULL, INTERVAL '-48 hours', 2, 10000, 20000, 0, 0, 'Returned', INTERVAL '48 hours 10 minutes', NULL, INTERVAL '46 hours', 'Good', 'Good', 'Slight scratch on the HDMI cable'),
-    -- DEMO0004: booking nanti, bukti bayar belum ada
-    ('DEMO0004', 'SN-PS4-001', NULL, INTERVAL '5 hours', 4, 10000, 40000, 0, 0, 'Booked', NULL, NULL, NULL, NULL, NULL, NULL),
-    -- DEMO0005: paket 3 jam besok, bayar cash
-    ('DEMO0005', 'SN-PS3-002', 3, INTERVAL '1 day', 3, NULL, 20000, 0, 0, 'Booked', NULL, NULL, NULL, NULL, NULL, NULL)
-    ) AS v(code, serial, pkg_hours, start_off, hours, price, total, extra_h, extra_c, status, rented_ago, overdue_ago, returned_ago, cond_pick, cond_ret, cond_note)
-    JOIN booking b
-ON b.booking_code = v.code
-    JOIN device d ON d.serial_number = v.serial
-    LEFT JOIN rental_package p ON p.device_id = d.device_id
-    AND p.duration_hours = v.pkg_hours
-    AND p.is_active;
+    sample.rental_status,
+    CASE
+        WHEN sample.rental_status IN ('Rented', 'Overdue', 'Returned')
+        THEN NOW() + sample.start_offset
+        ELSE NULL
+END,
+    CASE
+        WHEN sample.rental_status = 'Overdue'
+        THEN NOW() + sample.start_offset
+            + sample.duration_days * INTERVAL '24 hours'
+        ELSE NULL
+END,
+    CASE
+        WHEN sample.rental_status = 'Returned'
+        THEN NOW() + sample.start_offset
+            + sample.duration_days * INTERVAL '24 hours'
+        ELSE NULL
+END,
+    CASE
+        WHEN sample.rental_status IN ('Rented', 'Overdue', 'Returned')
+        THEN 'Good'
+        ELSE NULL
+END,
+    CASE
+        WHEN sample.rental_status = 'Returned'
+        THEN 'Good'
+        ELSE NULL
+END,
+    CASE
+        WHEN sample.rental_status = 'Returned'
+        THEN 'Unit dikembalikan lengkap dan dalam kondisi baik'
+        ELSE NULL
+END
+FROM (
+    VALUES
+        (
+            'DEMO0001',
+            'SN-PS4-001',
+            NULL,
+            INTERVAL '-24 hours',
+            2,
+            'Rented'
+        ),
+        (
+            'DEMO0001',
+            'SN-PS5-001',
+            NULL,
+            INTERVAL '-2 hours',
+            1,
+            'Rented'
+        ),
+        (
+            'DEMO0002',
+            'SN-PS4-002',
+            NULL,
+            INTERVAL '-30 hours',
+            1,
+            'Overdue'
+        ),
+        (
+            'DEMO0003',
+            'SN-PS5-002',
+            NULL,
+            INTERVAL '-96 hours',
+            2,
+            'Returned'
+        ),
+        (
+            'DEMO0004',
+            'SN-PS4-001',
+            NULL,
+            INTERVAL '72 hours',
+            1,
+            'Booked'
+        ),
+        (
+            'DEMO0005',
+            'SN-PS5-001',
+            'Paket 2 Hari',
+            INTERVAL '48 hours',
+            2,
+            'Booked'
+        )
+) AS sample (
+    booking_code,
+    serial_number,
+    package_name,
+    start_offset,
+    duration_days,
+    rental_status
+)
+JOIN booking b
+    ON b.booking_code = sample.booking_code
+JOIN device d
+    ON d.serial_number = sample.serial_number
+LEFT JOIN rental_package p
+    ON p.device_id = d.device_id
+   AND p.package_name = sample.package_name
+   AND p.is_active = TRUE;
