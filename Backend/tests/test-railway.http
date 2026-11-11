@@ -1,0 +1,58 @@
+@baseUrl = https://playstation-rental-project-production.up.railway.app/
+
+### 1. Daftar perangkat
+GET {{baseUrl}}/api/devices/list.php
+
+> {%
+    client.test("Backend dan database berjalan", function () {
+        client.assert(response.status === 200, "Harus HTTP 200");
+        client.assert(response.body.success === true, "success harus true");
+        client.assert(Array.isArray(response.body.data), "data harus array");
+    });
+%}
+
+### 2. Login — gunakan akun admin di database Supabase
+POST {{baseUrl}}/api/admin/login.php
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "admin12345"
+}
+
+> {%
+    client.test("Login berhasil", function () {
+        client.assert(response.status === 200, "Harus HTTP 200");
+        client.assert(response.body.success === true, "Login harus berhasil");
+    });
+%}
+
+### 3. Periksa sesi setelah login
+GET {{baseUrl}}/api/admin/me.php
+
+> {%
+    client.test("Sesi admin tersimpan", function () {
+        client.assert(response.status === 200, "Harus HTTP 200");
+        client.assert(response.body.success === true, "Sesi harus tersedia");
+    });
+%}
+
+### 4. Logout
+POST {{baseUrl}}/api/admin/logout.php
+
+> {%
+    client.test("Logout berhasil", function () {
+        client.assert(response.status === 200, "Harus HTTP 200");
+    });
+%}
+
+### 5. Periksa akses setelah logout
+GET {{baseUrl}}/api/admin/me.php
+
+> {%
+    client.test("Sesi sudah dihapus", function () {
+        client.assert(response.status === 401, "Harus HTTP 401");
+        client.assert(response.body.code === "UNAUTHORIZED",
+            "Harus UNAUTHORIZED");
+    });
+%}

@@ -1,0 +1,150 @@
+@baseUrl = http://localhost/playstation/backend/public/api
+
+@adminUsername = admin
+@adminPassword = admin12345
+
+
+### 1. Login admin
+POST {{baseUrl}}/admin/login.php
+Content-Type: application/json
+
+{
+  "username": "{{adminUsername}}",
+  "password": "{{adminPassword}}"
+}
+
+> {%
+    client.test("Login admin berhasil", function () {
+        client.assert(response.status === 200, "Harus HTTP 200");
+        client.assert(response.body.success === true, "Login harus berhasil");
+    });
+%}
+
+
+### 2. Ringkasan dashboard
+GET {{baseUrl}}/admin/dashboard.php
+
+> {%
+    client.test("Ringkasan dashboard sesuai format", function () {
+        client.assert(response.status === 200, "Harus HTTP 200");
+        client.assert(response.body.success === true, "Request harus berhasil");
+
+        const data = response.body.data;
+        const statuses = [
+            "Booked", "Rented", "Overdue", "Returned", "Cancelled"
+        ];
+
+        statuses.forEach(function (status) {
+            const count = data.counts[status];
+
+            client.assert(
+                Number.isInteger(count) && count >= 0,
+                "Jumlah " + status + " harus integer nonnegatif"
+            );
+        });
+
+        [
+            data.revenue_today,
+            data.revenue_this_month
+        ].forEach(function (revenue) {
+            client.assert(
+                typeof revenue === "number" && revenue >= 0,
+                "Pendapatan harus angka nonnegatif"
+            );
+        });
+
+        [
+            data.pending_payment_verifications,
+            data.unverified_identity_docs
+        ].forEach(function (count) {
+            client.assert(
+                Number.isInteger(count) && count >= 0,
+                "Jumlah antrean harus integer nonnegatif"
+            );
+        });
+
+        client.assert(
+            Array.isArray(data.overdue_rentals),
+            "overdue_rentals harus array"
+        );
+        client.assert(
+            data.overdue_rentals.length <= 20,
+            "Daftar keterlambatan maksimal 20 item"
+        );
+
+        data.overdue_rentals.forEach(function (rental) {
+            client.assert(
+                Number.isInteger(rental.rental_id),
+                "ID rental harus integer"
+            );
+            client.assert(
+                typeof rental.phone === "string",
+                "Nomor HP harus teks"
+            );
+            client.assert(
+                typeof rental.hours_overdue === "number"
+                && rental.hours_overdue >= 0,
+                "Lama keterlambatan harus angka nonnegatif"
+            );
+            client.assert(
+                /[+-]\d{2}:\d{2}$/.test(rental.end_time),
+                "Waktu selesai harus menyertakan zona waktu"
+            );
+            client.assert(
+                !Number.isNaN(Date.parse(rental.end_time)),
+                "Waktu selesai harus valid"
+            );
+        });
+
+        for (let i = 1; i < data.overdue_rentals.length; i++) {
+            const previous = Date.parse(data.overdue_rentals[i - 1].end_time);
+            const current = Date.parse(data.overdue_rentals[i].end_time);
+
+            client.assert(
+                previous <= current,
+                "Daftar harus dimulai dari keterlambatan paling lama"
+            );
+        }
+    });
+%}
+
+
+### 3. Method POST ditolak
+POST {{baseUrl}}/admin/dashboard.php
+Content-Type: application/json
+
+{}
+
+> {%
+    client.test("Tolak method POST", function () {
+        client.assert(response.status === 405, "Harus HTTP 405");
+        client.assert(
+            response.body.code === "METHOD_NOT_ALLOWED",
+            "Kode error tidak sesuai"
+        );
+    });
+%}
+
+
+### 4. Logout admin
+POST {{baseUrl}}/admin/logout.php
+
+> {%
+    client.test("Logout berhasil", function () {
+        client.assert(response.status === 200, "Harus HTTP 200");
+    });
+%}
+
+
+### 5. Dashboard tanpa sesi ditolak
+GET {{baseUrl}}/admin/dashboard.php
+
+> {%
+    client.test("Dashboard wajib login", function () {
+        client.assert(response.status === 401, "Harus HTTP 401");
+        client.assert(
+            response.body.code === "UNAUTHORIZED",
+            "Kode error tidak sesuai"
+        );
+    });
+%}

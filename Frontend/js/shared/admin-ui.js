@@ -68,9 +68,27 @@ window.NovaAdmin = (function () {
     return box;
   }
 
+  // Extension orders show "(Extend)", count no new unit and show only the extra days
   function unitNames(order) {
     return order.items.map(function (i) {
-      return NovaPS.PRODUCTS[i.unit].name;
+      return (
+        NovaPS.PRODUCTS[i.unit].name +
+        (order.type === "extend" ? " (Extend)" : "")
+      );
+    });
+  }
+
+  function unitCounts(order) {
+    return order.items.map(function () {
+      return order.type === "extend" ? "-" : "1";
+    });
+  }
+
+  function durationLines(order) {
+    return order.items.map(function (i) {
+      return (
+        NovaPS.formatDays(i.days) + (order.type === "extend" ? " (Extend)" : "")
+      );
     });
   }
 
@@ -232,9 +250,13 @@ window.NovaAdmin = (function () {
 
     function act(action, reason, message) {
       try {
-        NovaPS.orders.adminAct(currentId, action, reason);
-        toast(message);
-        show(currentId);
+        var done = NovaPS.orders.adminAct(currentId, action, reason);
+        toast(
+          done.lateFee
+            ? message + " Late fee to collect: " + NovaPS.money(done.lateFee)
+            : message,
+        );
+        m.close(); // done: no need to press the X
         if (onChange) onChange();
       } catch (e) {
         toast(e.message);
@@ -278,6 +300,61 @@ window.NovaAdmin = (function () {
       var info = section(body, "Order");
       kv(info, "Order ID", order.id);
       kv(info, "Status", "").lastChild.replaceWith(statusCell(order));
+      if (order.type === "extend") {
+        kv(info, "Type", "Extension of " + order.parentId);
+        if (order.fine) {
+          kv(
+            info,
+            "Late fee paid",
+            NovaPS.money(order.fine) + " (" + order.fineMinutes + " min)",
+            "text-red-600",
+          );
+        }
+      }
+      if (order.status === "complete" && order.type !== "extend") {
+        // The rental is in the customer's hands: show the countdown and any late fee
+        var left = NovaPS.rentals.msLeft(order);
+        var pill = el(
+          "span",
+          "rounded-md px-2 py-0.5 text-xs text-white tabular-nums " +
+            NovaPS.rentalTone(left).pill,
+          NovaPS.formatHMS(left),
+        );
+        kv(info, "Time remaining", "").lastChild.replaceWith(pill);
+        if (order.extraDays)
+          kv(info, "Extended", "+" + NovaPS.formatDays(order.extraDays));
+        var waitingExt = NovaPS.rentals.pendingExtension(order);
+        if (waitingExt) {
+          kv(
+            info,
+            "Extension waiting",
+            "+" +
+              NovaPS.formatDays(waitingExt.items[0].days) +
+              " (" +
+              waitingExt.id +
+              "), clock paused",
+            "text-indigo-500",
+          );
+        }
+        if (left <= 0) {
+          kv(
+            info,
+            "Late fee now",
+            NovaPS.money(NovaPS.rentals.fine(order)) +
+              " (" +
+              NovaPS.rentals.fineMinutes(order) +
+              " min)",
+            "font-semibold text-red-600",
+          );
+        }
+      }
+      if (order.lateFee)
+        kv(
+          info,
+          "Late fee to collect",
+          NovaPS.money(order.lateFee) + " (" + order.lateMinutes + " min)",
+          "font-semibold text-red-600",
+        );
       kv(
         info,
         "Ordered",
@@ -375,9 +452,19 @@ window.NovaAdmin = (function () {
           ),
         );
         actions.appendChild(
-          button("Accept order", "btn-indigo", function () {
-            act("accept", "", "Order accepted: it is now Shipped");
-          }),
+          button(
+            order.type === "extend" ? "Accept extension" : "Accept order",
+            "btn-indigo",
+            function () {
+              act(
+                "accept",
+                "",
+                order.type === "extend"
+                  ? "Extension accepted"
+                  : "Order accepted: it is now Shipped",
+              );
+            },
+          ),
         );
       } else if (order.status === "shipped") {
         actions.appendChild(
@@ -422,6 +509,8 @@ window.NovaAdmin = (function () {
     statusCell: statusCell,
     dateCell: dateCell,
     unitNames: unitNames,
+    unitCounts: unitCounts,
+    durationLines: durationLines,
     cell: cell,
     headRow: headRow,
     lookButton: lookButton,

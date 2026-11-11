@@ -1,0 +1,151 @@
+@baseUrl = http://localhost/playstation/backend/public/api
+
+@startTime = 2026-12-25T10:00:00
+@durationDays = 2
+
+# Sesuaikan dengan hasil query booking aktif.
+@occupiedStartTime = 2026-12-20T10:00:00
+@occupiedDeviceId = 4
+
+
+### 1. Cari unit untuk dua hari
+GET {{baseUrl}}/devices/available.php?start_time={{startTime}}&duration_days={{durationDays}}
+
+> {%
+    client.test("Pencarian jadwal harian berhasil", function () {
+        client.assert(response.status === 200, "Harus HTTP 200");
+
+        const body = response.body;
+
+        client.assert(body.success === true, "Request harus berhasil");
+        client.assert(Array.isArray(body.data), "data harus array");
+        client.assert(body.meta.duration_days === 2, "Durasi harus dua hari");
+        client.assert(body.meta.duration_hours === 48, "Durasi harus 48 jam");
+        client.assert(
+            body.meta.total === body.data.length,
+            "Total harus sesuai jumlah unit"
+        );
+
+        const hours = (
+            Date.parse(body.meta.end_time) - Date.parse(body.meta.start_time)
+        ) / 3600000;
+
+        client.assert(hours === 48, "Selisih waktu harus 48 jam");
+        client.assert(
+            /[+-]\d{2}:\d{2}$/.test(body.meta.start_time),
+            "Waktu harus menyertakan zona waktu"
+        );
+
+        body.data.forEach(function (device) {
+            client.assert(
+                Number.isInteger(device.device_id),
+                "ID device harus integer"
+            );
+            client.assert(
+                ["PS4", "PS5"].includes(device.category),
+                "Kategori tidak sesuai"
+            );
+            client.assert(
+                typeof device.price_per_day === "number"
+                && device.price_per_day > 0,
+                "Tarif harian harus angka positif"
+            );
+        });
+    });
+%}
+
+
+### 2. Filter kategori PS4
+GET {{baseUrl}}/devices/available.php?start_time={{startTime}}&duration_days=1&category=PS4
+
+> {%
+    client.test("Filter PS4 berhasil", function () {
+        client.assert(response.status === 200, "Harus HTTP 200");
+
+        response.body.data.forEach(function (device) {
+            client.assert(device.category === "PS4", "Hanya boleh menampilkan PS4");
+        });
+    });
+%}
+
+
+### 3. Device yang jadwalnya bentrok tidak ditampilkan
+GET {{baseUrl}}/devices/available.php?start_time={{occupiedStartTime}}&duration_days=1
+
+> {%
+    client.test("Unit dengan jadwal bentrok tidak ditampilkan", function () {
+        client.assert(response.status === 200, "Harus HTTP 200");
+
+        const blockedId = Number("{{occupiedDeviceId}}");
+
+        client.assert(
+            !response.body.data.some(device => device.device_id === blockedId),
+            "Device yang sudah dipesan tidak boleh tersedia"
+        );
+    });
+%}
+
+
+### 4. Durasi pecahan ditolak
+GET {{baseUrl}}/devices/available.php?start_time={{startTime}}&duration_days=1.5
+
+> {%
+    client.test("Tolak durasi pecahan", function () {
+        client.assert(response.status === 422, "Harus HTTP 422");
+        client.assert(response.body.code === "VALIDATION_ERROR", "Kode tidak sesuai");
+    });
+%}
+
+
+### 5. Tanggal tidak valid ditolak
+GET {{baseUrl}}/devices/available.php?start_time=2026-02-30T10:00:00&duration_days=1
+
+> {%
+    client.test("Tolak tanggal tidak valid", function () {
+        client.assert(response.status === 422, "Harus HTTP 422");
+    });
+%}
+
+
+### 6. Kategori PS3 ditolak
+GET {{baseUrl}}/devices/available.php?start_time={{startTime}}&duration_days=1&category=PS3
+
+> {%
+    client.test("Tolak kategori PS3", function () {
+        client.assert(response.status === 422, "Harus HTTP 422");
+    });
+%}
+
+
+### 7. Format durasi lama ditolak
+GET {{baseUrl}}/devices/available.php?start_time={{startTime}}&duration_hours=24
+
+> {%
+    client.test("Tolak format per jam", function () {
+        client.assert(response.status === 422, "Harus HTTP 422");
+    });
+%}
+
+
+### 8. Durasi melebihi batas ditolak
+GET {{baseUrl}}/devices/available.php?start_time={{startTime}}&duration_days=8
+
+> {%
+    client.test("Tolak durasi melebihi tujuh hari", function () {
+        client.assert(response.status === 422, "Harus HTTP 422");
+    });
+%}
+
+
+### 9. Method POST ditolak
+POST {{baseUrl}}/devices/available.php
+Content-Type: application/json
+
+{}
+
+> {%
+    client.test("Tolak method POST", function () {
+        client.assert(response.status === 405, "Harus HTTP 405");
+        client.assert(response.body.code === "METHOD_NOT_ALLOWED", "Kode tidak sesuai");
+    });
+%}

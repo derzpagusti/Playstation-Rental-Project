@@ -1,0 +1,80 @@
+@baseUrl = http://localhost/playstation/backend/public/api
+
+### 0. Pastikan Logout dulu untuk uji 401
+POST {{baseUrl}}/admin/logout.php
+
+### 1. List tanpa login -> 401 UNAUTHORIZED
+GET {{baseUrl}}/admin/bookings/list.php
+
+### 2. Login sebagai Admin -> 200 OK
+POST {{baseUrl}}/admin/login.php
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "admin12345"
+}
+
+### 3. List setelah login -> 5 pesanan (DEMO0004, DEMO0005, DEMO0001, DEMO0002, DEMO0003)
+# Cek DEMO0001: items_count 2, total_cost 51000, status_counts.Rented 2
+GET {{baseUrl}}/admin/bookings/list.php
+
+### 4. Filter ?status=Overdue -> Hanya DEMO0002
+GET {{baseUrl}}/admin/bookings/list.php?status=Overdue
+
+### 5. Filter ?status=Booked -> DEMO0004 dan DEMO0005
+GET {{baseUrl}}/admin/bookings/list.php?status=Booked
+
+### 6. Filter ?status=Rented -> Hanya DEMO0001, items_count tetap 2
+GET {{baseUrl}}/admin/bookings/list.php?status=Rented
+
+### 7. Filter ?payment_verified=false -> DEMO0004 dan DEMO0005
+GET {{baseUrl}}/admin/bookings/list.php?payment_verified=false
+
+### 8. Filter ?payment_verified=true -> DEMO0001, DEMO0002, DEMO0003
+GET {{baseUrl}}/admin/bookings/list.php?payment_verified=true
+
+### 9. Search kode booking: ?search=DEMO0001 -> 1 pesanan (DEMO0001)
+GET {{baseUrl}}/admin/bookings/list.php?search=DEMO0001
+
+### 10. Search nomor HP: ?search=0812 -> DEMO0001
+GET {{baseUrl}}/admin/bookings/list.php?search=0812
+
+### 11. Search nama: ?search=sinta -> DEMO0004 dan DEMO0002
+GET {{baseUrl}}/admin/bookings/list.php?search=sinta
+
+### 12. Search karakter wildcard: ?search=% -> Hasil kosong (data: [], total: 0)
+GET {{baseUrl}}/admin/bookings/list.php?search=%25
+
+### 13. Paginasi: ?per_page=2&page=2 -> DEMO0001 dan DEMO0002, meta.total tetap 5
+GET {{baseUrl}}/admin/bookings/list.php?per_page=2&page=2
+
+### 14. Validasi gagal (422): status Bogus, page 0, per_page 1000
+GET {{baseUrl}}/admin/bookings/list.php?status=Bogus
+
+###
+GET {{baseUrl}}/admin/bookings/list.php?page=0
+
+###
+GET {{baseUrl}}/admin/bookings/list.php?per_page=1000
+
+### 15. Detail DEMO0001 (booking_id=1) -> 2 item, Budi Santoso, verified_by "Reza Mahardika"
+GET {{baseUrl}}/admin/bookings/detail.php?booking_id=1
+
+### 16. Detail DEMO0003 (booking_id=3) -> Kondisi Good/Good/Slight scratch, deposit returned_at terisi
+GET {{baseUrl}}/admin/bookings/detail.php?booking_id=3
+
+### 17. Detail DEMO0004 (booking_id=4) -> verified_by null, proof_uploaded false
+GET {{baseUrl}}/admin/bookings/detail.php?booking_id=4
+
+### 18. Detail 404: booking_id=999
+GET {{baseUrl}}/admin/bookings/detail.php?booking_id=999
+
+### 19. Detail 422: booking_id=abc, 0, atau kosong
+GET {{baseUrl}}/admin/bookings/detail.php?booking_id=abc
+
+###
+GET {{baseUrl}}/admin/bookings/detail.php?booking_id=0
+
+###
+GET {{baseUrl}}/admin/bookings/detail.php

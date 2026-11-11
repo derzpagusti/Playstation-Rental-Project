@@ -1,4 +1,4 @@
--- price_per_hour dipakai untuk sewa durasi bebas (durasi x harga per jam)
+-- Harga sewa harian per device; 1 hari = 24 jam.
 CREATE TABLE device
 (
     device_id      SERIAL PRIMARY KEY,

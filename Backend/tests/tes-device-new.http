@@ -1,0 +1,140 @@
+@baseUrl = http://localhost/playstation/backend/public/api
+@ps4DeviceId = 1
+@ps5DeviceId = 3
+
+
+### 1. Tarif dan paket PS4
+GET {{baseUrl}}/devices/pricing.php?device_id={{ps4DeviceId}}
+
+> {%
+    client.test("Tarif dan paket PS4 sesuai seeder", function () {
+        client.assert(response.status === 200, "Harus HTTP 200");
+        client.assert(response.body.success === true, "Request harus berhasil");
+
+        const data = response.body.data;
+
+        client.assert(data.category === "PS4", "Kategori harus PS4");
+        client.assert(data.price_per_day === 50000, "Tarif harus Rp50.000/hari");
+        client.assert(
+            !Object.prototype.hasOwnProperty.call(data, "price_per_hour"),
+            "Harga per jam harus sudah dihapus"
+        );
+        client.assert(Array.isArray(data.packages), "packages harus array");
+        client.assert(data.packages.length === 2, "Harus ada dua paket aktif");
+
+        const twoDays = data.packages.find(p => p.duration_days === 2);
+        const threeDays = data.packages.find(p => p.duration_days === 3);
+
+        client.assert(twoDays !== undefined, "Paket dua hari harus tersedia");
+        client.assert(threeDays !== undefined, "Paket tiga hari harus tersedia");
+
+        client.assert(twoDays.duration_hours === 48, "Dua hari harus 48 jam");
+        client.assert(twoDays.package_price === 100000, "Paket dua hari Rp100.000");
+        client.assert(threeDays.duration_hours === 72, "Tiga hari harus 72 jam");
+        client.assert(threeDays.package_price === 150000, "Paket tiga hari Rp150.000");
+
+        client.assert(
+            !data.packages.some(p => p.duration_days === 7),
+            "Paket tujuh hari yang tidak aktif tidak boleh tampil"
+        );
+
+        data.packages.forEach(function (p) {
+            client.assert(Number.isInteger(p.package_id), "ID paket harus integer");
+            client.assert(Number.isInteger(p.duration_days), "Durasi harus integer");
+            client.assert(typeof p.package_price === "number", "Harga harus number");
+        });
+    });
+%}
+
+
+### 2. Tarif dan paket PS5
+GET {{baseUrl}}/devices/pricing.php?device_id={{ps5DeviceId}}
+
+> {%
+    client.test("Tarif dan paket PS5 sesuai seeder", function () {
+        client.assert(response.status === 200, "Harus HTTP 200");
+
+        const data = response.body.data;
+
+        client.assert(data.category === "PS5", "Kategori harus PS5");
+        client.assert(data.price_per_day === 100000, "Tarif harus Rp100.000/hari");
+        client.assert(data.packages.length === 2, "Harus ada dua paket aktif");
+
+        const twoDays = data.packages.find(p => p.duration_days === 2);
+        const threeDays = data.packages.find(p => p.duration_days === 3);
+
+        client.assert(twoDays !== undefined, "Paket dua hari harus tersedia");
+        client.assert(threeDays !== undefined, "Paket tiga hari harus tersedia");
+
+        client.assert(twoDays.package_price === 200000, "Paket dua hari Rp200.000");
+        client.assert(threeDays.package_price === 300000, "Paket tiga hari Rp300.000");
+    });
+%}
+
+
+### 3. device_id tidak diberikan
+GET {{baseUrl}}/devices/pricing.php
+
+> {%
+    client.test("Tolak tanpa device_id", function () {
+        client.assert(response.status === 422, "Harus HTTP 422");
+        client.assert(response.body.code === "VALIDATION_ERROR", "Kode tidak sesuai");
+    });
+%}
+
+
+### 4. device_id berupa teks
+GET {{baseUrl}}/devices/pricing.php?device_id=abc
+
+> {%
+    client.test("Tolak device_id berupa teks", function () {
+        client.assert(response.status === 422, "Harus HTTP 422");
+    });
+%}
+
+
+### 5. device_id berupa array
+GET {{baseUrl}}/devices/pricing.php?device_id[]=1
+
+> {%
+    client.test("Tolak device_id berupa array", function () {
+        client.assert(response.status === 422, "Harus HTTP 422");
+    });
+%}
+
+
+### 6. device_id bernilai nol
+GET {{baseUrl}}/devices/pricing.php?device_id=0
+
+> {%
+    client.test("Tolak device_id nol", function () {
+        client.assert(response.status === 422, "Harus HTTP 422");
+    });
+%}
+
+
+### 7. Device tidak ditemukan
+GET {{baseUrl}}/devices/pricing.php?device_id=2147483647
+
+> {%
+    client.test("Device tidak ditemukan", function () {
+        client.assert(response.status === 404, "Harus HTTP 404");
+        client.assert(response.body.code === "NOT_FOUND", "Kode tidak sesuai");
+    });
+%}
+
+
+### 8. Method POST ditolak
+POST {{baseUrl}}/devices/pricing.php
+Content-Type: application/json
+
+{
+  "device_id": {{ps4DeviceId}}
+}
+
+> {%
+    client.test("Tolak method POST", function () {
+        client.assert(response.status === 405, "Harus HTTP 405");
+        client.assert(response.body.code === "METHOD_NOT_ALLOWED", "Kode tidak sesuai");
+    });
+%}

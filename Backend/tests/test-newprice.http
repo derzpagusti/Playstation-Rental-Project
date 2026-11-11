@@ -1,0 +1,187 @@
+@baseUrl = http://localhost/playstation/backend/public/api
+
+# Sesuaikan dengan hasil query database.
+@ps4DeviceId = 1
+@ps5DeviceId = 3
+@ps4TwoDayPackageId = 1
+@ps4InactivePackageId = 11
+
+
+### 1. PS4 selama 1 hari: Rp50.000, 24 jam
+POST {{baseUrl}}/pricing/calculate.php
+Content-Type: application/json
+
+{
+  "device_id": {{ps4DeviceId}},
+  "duration_days": 1
+}
+
+> {%
+    client.test("PS4 satu hari", function () {
+        client.assert(response.status === 200, "Harus HTTP 200");
+
+        const data = response.body.data;
+
+        client.assert(data.duration_days === 1, "Durasi harus 1 hari");
+        client.assert(data.duration_hours === 24, "Durasi harus 24 jam");
+        client.assert(data.price_per_day === 50000, "Harga harus Rp50.000");
+        client.assert(data.total_cost === 50000, "Total harus Rp50.000");
+        client.assert(data.package_id === null, "Bukan mode paket");
+    });
+%}
+
+
+### 2. PS5 selama 3 hari: Rp300.000, 72 jam
+POST {{baseUrl}}/pricing/calculate.php
+Content-Type: application/json
+
+{
+  "device_id": {{ps5DeviceId}},
+  "duration_days": 3
+}
+
+> {%
+    client.test("PS5 tiga hari", function () {
+        client.assert(response.status === 200, "Harus HTTP 200");
+
+        const data = response.body.data;
+
+        client.assert(data.duration_days === 3, "Durasi harus 3 hari");
+        client.assert(data.duration_hours === 72, "Durasi harus 72 jam");
+        client.assert(data.price_per_day === 100000, "Harga harus Rp100.000");
+        client.assert(data.total_cost === 300000, "Total harus Rp300.000");
+    });
+%}
+
+
+### 3. Paket PS4 dua hari: Rp100.000
+POST {{baseUrl}}/pricing/calculate.php
+Content-Type: application/json
+
+{
+  "device_id": {{ps4DeviceId}},
+  "package_id": {{ps4TwoDayPackageId}}
+}
+
+> {%
+    client.test("Paket PS4 dua hari", function () {
+        client.assert(response.status === 200, "Harus HTTP 200");
+
+        const data = response.body.data;
+
+        client.assert(data.duration_days === 2, "Durasi harus 2 hari");
+        client.assert(data.duration_hours === 48, "Durasi harus 48 jam");
+        client.assert(data.price_per_day === null, "Paket memakai harga tetap");
+        client.assert(data.total_cost === 100000, "Total harus Rp100.000");
+    });
+%}
+
+
+### 4. Durasi pecahan ditolak
+POST {{baseUrl}}/pricing/calculate.php
+Content-Type: application/json
+
+{
+  "device_id": {{ps4DeviceId}},
+  "duration_days": 1.5
+}
+
+> {%
+    client.test("Tolak durasi pecahan", function () {
+        client.assert(response.status === 422, "Harus HTTP 422");
+        client.assert(response.body.code === "VALIDATION_ERROR", "Kode tidak sesuai");
+    });
+%}
+
+
+### 5. Durasi melebihi 7 hari ditolak
+POST {{baseUrl}}/pricing/calculate.php
+Content-Type: application/json
+
+{
+  "device_id": {{ps4DeviceId}},
+  "duration_days": 8
+}
+
+> {%
+    client.test("Tolak durasi melebihi batas", function () {
+        client.assert(response.status === 422, "Harus HTTP 422");
+    });
+%}
+
+
+### 6. Durasi dan paket sekaligus ditolak
+POST {{baseUrl}}/pricing/calculate.php
+Content-Type: application/json
+
+{
+  "device_id": {{ps4DeviceId}},
+  "duration_days": 2,
+  "package_id": {{ps4TwoDayPackageId}}
+}
+
+> {%
+    client.test("Tolak dua mode harga sekaligus", function () {
+        client.assert(response.status === 422, "Harus HTTP 422");
+    });
+%}
+
+
+### 7. Paket PS4 tidak dapat digunakan untuk PS5
+POST {{baseUrl}}/pricing/calculate.php
+Content-Type: application/json
+
+{
+  "device_id": {{ps5DeviceId}},
+  "package_id": {{ps4TwoDayPackageId}}
+}
+
+> {%
+    client.test("Tolak paket milik device lain", function () {
+        client.assert(response.status === 404, "Harus HTTP 404");
+        client.assert(response.body.code === "NOT_FOUND", "Kode tidak sesuai");
+    });
+%}
+
+
+### 8. Paket tidak aktif ditolak
+POST {{baseUrl}}/pricing/calculate.php
+Content-Type: application/json
+
+{
+  "device_id": {{ps4DeviceId}},
+  "package_id": {{ps4InactivePackageId}}
+}
+
+> {%
+    client.test("Tolak paket tidak aktif", function () {
+        client.assert(response.status === 404, "Harus HTTP 404");
+    });
+%}
+
+
+### 9. Format lama per jam ditolak
+POST {{baseUrl}}/pricing/calculate.php
+Content-Type: application/json
+
+{
+  "device_id": {{ps4DeviceId}},
+  "duration_hours": 24
+}
+
+> {%
+    client.test("Tolak format per jam", function () {
+        client.assert(response.status === 422, "Harus HTTP 422");
+    });
+%}
+
+
+### 10. Method GET ditolak
+GET {{baseUrl}}/pricing/calculate.php
+
+> {%
+    client.test("Tolak method GET", function () {
+        client.assert(response.status === 405, "Harus HTTP 405");
+        client.assert(response.body.code === "METHOD_NOT_ALLOWED", "Kode tidak sesuai");
+    });
+%}

@@ -6,6 +6,8 @@
 @source "../pages/account.html";
 @source "../js/account.js";
 
+@source "../js/shared/rental-alerts.js";
+
 @layer components {
   /* Small outlined action button (Edit, Change Password) */
   .btn-edit {

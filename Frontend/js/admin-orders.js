@@ -67,24 +67,8 @@
       tr.appendChild(ui.cell(order.customer.fullname));
       tr.appendChild(ui.cell(order.id, "text-xs text-slate-500"));
       tr.appendChild(ui.cell(ui.stack(ui.unitNames(order))));
-      tr.appendChild(
-        ui.cell(
-          ui.stack(
-            order.items.map(function () {
-              return "1";
-            }),
-          ),
-        ),
-      );
-      tr.appendChild(
-        ui.cell(
-          ui.stack(
-            order.items.map(function (i) {
-              return NovaPS.formatDays(i.days);
-            }),
-          ),
-        ),
-      );
+      tr.appendChild(ui.cell(ui.stack(ui.unitCounts(order))));
+      tr.appendChild(ui.cell(ui.stack(ui.durationLines(order))));
       tr.appendChild(ui.cell(NovaPS.money(order.total)));
       tr.appendChild(ui.cell(ui.dateCell(order.createdAt)));
       tr.appendChild(ui.cell(ui.statusCell(order)));

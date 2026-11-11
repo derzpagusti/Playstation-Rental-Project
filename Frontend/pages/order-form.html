@@ -19,6 +19,7 @@
     <script src="../js/shared/validation.js" defer></script>
     <script src="../js/shared/image.js" defer></script>
     <script src="../js/shared/orders.js" defer></script>
+    <script src="../js/shared/rental-alerts.js" defer></script>
     <script src="../js/order-form.js" defer></script>
   </head>
   <body
@@ -419,8 +420,8 @@
             >
               <input type="radio" value="ps4" class="sr-only" />
               <span
-                >PS 4<span class="mx-2 text-slate-300">|</span>Rp
-                50.000/day</span
+                >PS 4<span class="mx-2 text-slate-300">|</span
+                ><span data-price="ps4">Rp 50.000/day</span></span
               >
               <span data-available class="shrink-0 text-slate-800"></span>
             </label>
@@ -429,8 +430,8 @@
             >
               <input type="radio" value="ps5" class="sr-only" />
               <span
-                >PS 5<span class="mx-2 text-slate-300">|</span>Rp
-                200.000/day</span
+                >PS 5<span class="mx-2 text-slate-300">|</span
+                ><span data-price="ps5">Rp 200.000/day</span></span
               >
               <span data-available class="shrink-0 text-slate-800"></span>
             </label>

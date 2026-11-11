@@ -17,6 +17,8 @@
     ></script>
     <script src="../js/shared/navbar.js" defer></script>
     <script src="../js/shared/tabs.js" defer></script>
+    <script src="../js/shared/orders.js" defer></script>
+    <script src="../js/shared/rental-alerts.js" defer></script>
     <script src="../js/time-remaining.js" defer></script>
   </head>
   <body
@@ -233,18 +235,22 @@
         </div>
       </div>
     </section>
-    <main class="wrap">
-      <div class="flex flex-col items-center gap-4 pt-[130px] text-center">
+    <main class="wrap py-8">
+      <ul id="rental-list" class="grid gap-5"></ul>
+      <div
+        id="empty-state"
+        class="flex flex-col items-center gap-4 pt-[100px] text-center"
+      >
         <p
           id="empty-message"
           aria-live="polite"
-          class="text-2xl text-slate-500"
+          class="mx-auto max-w-md text-2xl text-slate-500"
         >
           You haven’t ordered anything yet
         </p>
         <a
           id="empty-cta"
-          href="../index.html#units"
+          href="order-form.html"
           class="btn btn-indigo px-[25px] font-semibold"
           >Order Now</a
         >

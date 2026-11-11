@@ -1,0 +1,65 @@
+@baseUrl = http://localhost/playstation/backend/public/api
+
+### 1. Login sebagai Admin
+POST {{baseUrl}}/admin/login.php
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "admin12345"
+}
+
+### 2. Uji Kembalikan PS3 Playbox 02 di DEMO0001 (rental_id=2) -> 200 OK
+# booking_all_returned harus false karena PS4 (rental_id=1) masih Rented
+POST {{baseUrl}}/admin/bookings/return.php
+Content-Type: application/json
+
+{
+  "rental_id": 2,
+  "condition_at_return": "Good",
+  "condition_notes": "Kabel HDMI lecet"
+}
+
+### 3. Uji Kembalikan PS4 Playbox 01 di DEMO0001 (rental_id=1) -> 200 OK
+# booking_all_returned harus true karena semua item pesanan sudah kembali
+POST {{baseUrl}}/admin/bookings/return.php
+Content-Type: application/json
+
+{ "rental_id": 1 }
+
+### 4. Uji Kembalikan Ulang rental_id=1 yang Sudah Kembali -> 409 INVALID_STATUS_TRANSITION
+POST {{baseUrl}}/admin/bookings/return.php
+Content-Type: application/json
+
+{ "rental_id": 1 }
+
+### 5. Uji Kembalikan Item yang Masih Booked (rental_id=6 milik DEMO0005 sebelum diverifikasi) -> 409
+# Jika DEMO0005 belum diverifikasi:
+POST {{baseUrl}}/admin/bookings/return.php
+Content-Type: application/json
+
+{ "rental_id": 6 }
+
+### 6. Uji Kembalikan DEMO0002 yang Overdue (rental_id=3) -> 200 OK
+POST {{baseUrl}}/admin/bookings/return.php
+Content-Type: application/json
+
+{
+  "rental_id": 3,
+  "condition_at_return": "Good"
+}
+
+### 7. Uji Validasi Panjang Karakter & Tipe Data -> 422 VALIDATION_ERROR
+POST {{baseUrl}}/admin/bookings/return.php
+Content-Type: application/json
+
+{
+  "rental_id": 3,
+  "condition_at_return": 12345
+}
+
+### 8. Uji rental_id tidak ditemukan (999) -> 404 NOT_FOUND
+POST {{baseUrl}}/admin/bookings/return.php
+Content-Type: application/json
+
+{ "rental_id": 999 }

@@ -1,0 +1,210 @@
+@baseUrl = http://localhost/playstation/backend/public/api
+
+# Sesuaikan kredensial admin.
+@adminUsername = admin
+@adminPassword = admin12345
+
+# Angka ID di bawah hanya contoh; ambil dari query database.
+@regularBookingId = 6
+@packageBookingId = 8
+
+@regularPricePerDay = 100000
+@regularTotal = 200000
+@packageTotal = 200000
+
+
+### 1. Login admin
+POST {{baseUrl}}/admin/login.php
+Content-Type: application/json
+
+{
+  "username": "{{adminUsername}}",
+  "password": "{{adminPassword}}"
+}
+
+> {%
+    client.test("Login admin berhasil", function () {
+        client.assert(response.status === 200, "Harus HTTP 200");
+        client.assert(response.body.success === true, "Login harus berhasil");
+    });
+%}
+
+
+### 2. Detail booking biasa
+GET {{baseUrl}}/admin/bookings/detail.php?booking_id={{regularBookingId}}
+
+> {%
+    client.test("Detail booking harian biasa", function () {
+        client.assert(response.status === 200, "Harus HTTP 200");
+
+        const data = response.body.data;
+
+        client.assert(
+            data.booking_id === Number("{{regularBookingId}}"),
+            "ID booking tidak sesuai"
+        );
+        client.assert(data.items.length === 1, "Harus memiliki satu item");
+
+        const item = data.items[0];
+
+        client.assert(item.package_id === null, "Bukan booking paket");
+        client.assert(item.duration_days === 2, "Durasi harus dua hari");
+        client.assert(item.duration_hours === 48, "Durasi harus 48 jam");
+        client.assert(
+            item.price_per_day === Number("{{regularPricePerDay}}"),
+            "Tarif harian tidak sesuai"
+        );
+        client.assert(
+            item.total_cost === Number("{{regularTotal}}"),
+            "Total item tidak sesuai"
+        );
+        client.assert(
+            data.total_cost === Number("{{regularTotal}}"),
+            "Total booking tidak sesuai"
+        );
+        client.assert(
+            !Object.prototype.hasOwnProperty.call(item, "price_per_hour"),
+            "Harga per jam tidak boleh muncul"
+        );
+
+        const hours = (
+            Date.parse(item.end_time) - Date.parse(item.start_time)
+        ) / 3600000;
+
+        client.assert(hours === 48, "Selisih waktu harus 48 jam");
+
+        client.assert(data.payment.method === "Cash", "Metode harus Cash");
+        client.assert(data.payment.status === "Pending", "Status harus Pending");
+        client.assert(data.payment.expires_at === null, "Cash tanpa deadline");
+        client.assert(data.payment.seconds_left === null, "Cash tanpa countdown");
+
+        [data.created_at, item.start_time, item.end_time].forEach(function (value) {
+            client.assert(
+                /[+-]\d{2}:\d{2}$/.test(value),
+                "Tanggal harus menyertakan zona waktu"
+            );
+            client.assert(
+                !Number.isNaN(Date.parse(value)),
+                "Tanggal harus valid"
+            );
+        });
+
+        client.assert(typeof data.customer.phone === "string", "Nomor HP harus teks");
+        client.assert(Array.isArray(item.timeline), "Timeline harus array");
+        client.assert(item.timeline.length > 0, "Timeline harus terisi");
+
+        item.timeline.forEach(function (event) {
+            client.assert(
+                /[+-]\d{2}:\d{2}$/.test(event.at),
+                "Waktu timeline harus menyertakan zona waktu"
+            );
+        });
+    });
+%}
+
+
+### 3. Detail booking paket
+GET {{baseUrl}}/admin/bookings/detail.php?booking_id={{packageBookingId}}
+
+> {%
+    client.test("Detail booking paket", function () {
+        client.assert(response.status === 200, "Harus HTTP 200");
+
+        const data = response.body.data;
+
+        client.assert(
+            data.booking_id === Number("{{packageBookingId}}"),
+            "ID booking tidak sesuai"
+        );
+        client.assert(data.items.length === 1, "Harus memiliki satu item");
+
+        const item = data.items[0];
+
+        client.assert(
+            Number.isInteger(item.package_id) && item.package_id > 0,
+            "ID paket harus integer positif"
+        );
+        client.assert(
+            typeof item.package_name === "string",
+            "Nama paket harus tersedia"
+        );
+        client.assert(item.duration_days === 2, "Durasi harus dua hari");
+        client.assert(item.duration_hours === 48, "Durasi harus 48 jam");
+        client.assert(item.price_per_day === null, "Paket memakai harga tetap");
+        client.assert(
+            item.total_cost === Number("{{packageTotal}}"),
+            "Total item tidak sesuai"
+        );
+        client.assert(
+            data.total_cost === Number("{{packageTotal}}"),
+            "Total booking tidak sesuai"
+        );
+    });
+%}
+
+
+### 4. booking_id tidak diberikan
+GET {{baseUrl}}/admin/bookings/detail.php
+
+> {%
+    client.test("Tolak tanpa booking_id", function () {
+        client.assert(response.status === 422, "Harus HTTP 422");
+        client.assert(response.body.code === "VALIDATION_ERROR", "Kode tidak sesuai");
+    });
+%}
+
+
+### 5. booking_id berupa array ditolak
+GET {{baseUrl}}/admin/bookings/detail.php?booking_id[]=1
+
+> {%
+    client.test("Tolak booking_id array", function () {
+        client.assert(response.status === 422, "Harus HTTP 422");
+    });
+%}
+
+
+### 6. Booking tidak ditemukan
+GET {{baseUrl}}/admin/bookings/detail.php?booking_id=2147483647
+
+> {%
+    client.test("Booking tidak ditemukan", function () {
+        client.assert(response.status === 404, "Harus HTTP 404");
+        client.assert(response.body.code === "NOT_FOUND", "Kode tidak sesuai");
+    });
+%}
+
+
+### 7. Method POST ditolak
+POST {{baseUrl}}/admin/bookings/detail.php
+Content-Type: application/json
+
+{}
+
+> {%
+    client.test("Tolak method POST", function () {
+        client.assert(response.status === 405, "Harus HTTP 405");
+        client.assert(response.body.code === "METHOD_NOT_ALLOWED", "Kode tidak sesuai");
+    });
+%}
+
+
+### 8. Logout admin
+POST {{baseUrl}}/admin/logout.php
+
+> {%
+    client.test("Logout berhasil", function () {
+        client.assert(response.status === 200, "Harus HTTP 200");
+    });
+%}
+
+
+### 9. Detail booking tanpa sesi ditolak
+GET {{baseUrl}}/admin/bookings/detail.php?booking_id={{regularBookingId}}
+
+> {%
+    client.test("Detail booking wajib login", function () {
+        client.assert(response.status === 401, "Harus HTTP 401");
+        client.assert(response.body.code === "UNAUTHORIZED", "Kode tidak sesuai");
+    });
+%}

@@ -8,3 +8,5 @@ Backend/uploads/*
 *.log
 
 .idea
+
+!Backend/uploads/.htaccess

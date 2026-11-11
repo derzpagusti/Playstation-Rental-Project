@@ -1,0 +1,20 @@
+@baseUrl = http://localhost/playstation/backend/public
+
+### Upload bukti pembayaran DEMO0004
+POST {{baseUrl}}/api/bookings/payment-proof.php
+Content-Type: multipart/form-data; boundary=proof-test
+
+--proof-test
+Content-Disposition: form-data; name="booking_code"
+
+DEMO0004
+--proof-test
+Content-Disposition: form-data; name="phone"
+
+082345678901
+--proof-test
+Content-Disposition: form-data; name="payment_proof"; filename="bukti-uji.png"
+Content-Type: image/png
+
+< ./bukti-uji.png
+--proof-test--

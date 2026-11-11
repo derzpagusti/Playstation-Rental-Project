@@ -1,0 +1,106 @@
+@baseUrl = http://localhost/playstation/backend/public
+# Ganti dengan booking_id DEMO0004 dari hasil query
+@bookingId = 4
+
+### 1. Login admin — harapkan 200
+POST {{baseUrl}}/api/admin/login.php
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "admin12345"
+}
+
+> {%
+    client.test("Login admin berhasil", function () {
+        client.assert(response.status === 200, "Harus HTTP 200");
+        client.assert(response.body.success === true, "Login harus berhasil");
+    });
+%}
+
+### 2. Verifikasi pertama — harapkan 200
+POST {{baseUrl}}/api/admin/bookings/verify.php
+Content-Type: application/json
+
+{
+  "booking_id": {{bookingId}}
+}
+
+> {%
+    client.test("Pembayaran dan rental berhasil diperbarui", function () {
+        client.assert(response.status === 200, "Harus HTTP 200");
+        client.assert(response.body.data.payment_status === "Paid",
+            "Pembayaran harus Paid");
+
+        const items = response.body.data.items;
+        client.assert(items.length > 0, "Item rental harus tersedia");
+        client.assert(items.every(item => item.rental_status === "Rented"),
+            "Semua item harus Rented");
+    });
+%}
+
+### 3. Verifikasi ulang — harapkan 409
+POST {{baseUrl}}/api/admin/bookings/verify.php
+Content-Type: application/json
+
+{
+  "booking_id": {{bookingId}}
+}
+
+> {%
+    client.test("Verifikasi ganda ditolak", function () {
+        client.assert(response.status === 409, "Harus HTTP 409");
+        client.assert(response.body.code === "INVALID_STATUS_TRANSITION",
+            "Kode error harus INVALID_STATUS_TRANSITION");
+    });
+%}
+
+### 4. Tracking customer — harapkan pembayaran terverifikasi
+POST {{baseUrl}}/api/bookings/track.php
+Content-Type: application/json
+
+{
+  "booking_code": "DEMO0004",
+  "phone": "082345678901"
+}
+
+> {%
+    client.test("Customer melihat hasil verifikasi", function () {
+        client.assert(response.status === 200, "Harus HTTP 200");
+        client.assert(response.body.data.payment_verified === true,
+            "Pembayaran harus terverifikasi");
+    });
+%}
+
+### 5. ID tidak valid — harapkan 422
+POST {{baseUrl}}/api/admin/bookings/verify.php
+Content-Type: application/json
+
+{
+  "booking_id": 0
+}
+
+> {%
+    client.test("ID tidak valid ditolak", function () {
+        client.assert(response.status === 422, "Harus HTTP 422");
+    });
+%}
+
+### 6. Logout sebelum menguji akses tanpa sesi
+POST {{baseUrl}}/api/admin/logout.php
+
+### 7. Verifikasi tanpa login — harapkan 401
+POST {{baseUrl}}/api/admin/bookings/verify.php
+Content-Type: application/json
+
+{
+  "booking_id": {{bookingId}}
+}
+
+> {%
+    client.test("Verifikasi memerlukan login", function () {
+        client.assert(response.status === 401, "Harus HTTP 401");
+        client.assert(response.body.code === "UNAUTHORIZED",
+            "Kode error harus UNAUTHORIZED");
+    });
+%}

@@ -1,0 +1,210 @@
+@baseUrl = http://localhost/playstation/backend/public/api
+
+# Ganti sesuai booking biasa dari pengujian sebelumnya.
+@regularBookingCode = AEDDEE0B
+@regularPhone = 0899123456701
+@regularPricePerDay = 100000
+@regularTotal = 200000
+
+# Booking paket yang sebelumnya kamu kirim.
+@packageBookingCode = A43125F1
+@packagePhone = 0899123456701
+@packageTotal = 200000
+
+# Gunakan nomor valid yang bukan milik customer booking di atas.
+@wrongPhone = 0899000000000
+
+
+### 1. Tracking booking biasa
+POST {{baseUrl}}/bookings/track.php
+Content-Type: application/json
+
+{
+  "booking_code": "{{regularBookingCode}}",
+  "phone": "{{regularPhone}}"
+}
+
+> {%
+    client.test("Tracking booking harian biasa", function () {
+        client.assert(response.status === 200, "Harus HTTP 200");
+
+        const data = response.body.data;
+
+        client.assert(
+            data.booking_code === "{{regularBookingCode}}",
+            "Kode booking tidak sesuai"
+        );
+        client.assert(data.items.length === 1, "Harus memiliki satu item");
+
+        const item = data.items[0];
+
+        client.assert(item.package_id === null, "Bukan booking paket");
+        client.assert(item.duration_days === 2, "Durasi harus dua hari");
+        client.assert(item.duration_hours === 48, "Durasi harus 48 jam");
+        client.assert(
+            item.price_per_day === Number("{{regularPricePerDay}}"),
+            "Tarif harian tidak sesuai"
+        );
+        client.assert(
+            item.total_cost === Number("{{regularTotal}}"),
+            "Total item tidak sesuai"
+        );
+        client.assert(
+            data.total_cost === Number("{{regularTotal}}"),
+            "Total booking tidak sesuai"
+        );
+        client.assert(item.extra_cost === 0, "Belum ada biaya tambahan");
+        client.assert(item.rental_status === "Booked", "Status harus Booked");
+
+        client.assert(
+            !Object.prototype.hasOwnProperty.call(item, "price_per_hour"),
+            "Harga per jam tidak boleh muncul"
+        );
+
+        const elapsedHours = (
+            Date.parse(item.end_time) - Date.parse(item.start_time)
+        ) / 3600000;
+
+        client.assert(elapsedHours === 48, "Selisih waktu harus 48 jam");
+
+        [data.created_at, item.start_time, item.end_time].forEach(function (value) {
+            client.assert(
+                /[+-]\d{2}:\d{2}$/.test(value),
+                "Waktu harus menyertakan zona waktu"
+            );
+            client.assert(
+                !Number.isNaN(Date.parse(value)),
+                "Waktu harus valid"
+            );
+        });
+
+        client.assert(data.payment.status === "Pending", "Pembayaran harus Pending");
+        client.assert(data.payment.expires_at === null, "Cash tanpa deadline");
+        client.assert(data.payment.seconds_left === null, "Cash tanpa countdown");
+    });
+%}
+
+
+### 2. Tracking booking paket
+POST {{baseUrl}}/bookings/track.php
+Content-Type: application/json
+
+{
+  "booking_code": "{{packageBookingCode}}",
+  "phone": "{{packagePhone}}"
+}
+
+> {%
+    client.test("Tracking booking paket", function () {
+        client.assert(response.status === 200, "Harus HTTP 200");
+
+        const data = response.body.data;
+
+        client.assert(
+            data.booking_code === "{{packageBookingCode}}",
+            "Kode booking tidak sesuai"
+        );
+        client.assert(data.items.length === 1, "Harus memiliki satu item");
+
+        const item = data.items[0];
+
+        client.assert(
+            Number.isInteger(item.package_id) && item.package_id > 0,
+            "ID paket harus berupa integer positif"
+        );
+        client.assert(item.duration_days === 2, "Durasi harus dua hari");
+        client.assert(item.duration_hours === 48, "Durasi harus 48 jam");
+        client.assert(item.price_per_day === null, "Paket memakai harga tetap");
+        client.assert(
+            data.total_cost === Number("{{packageTotal}}"),
+            "Total booking paket tidak sesuai"
+        );
+        client.assert(
+            item.total_cost === Number("{{packageTotal}}"),
+            "Total item paket tidak sesuai"
+        );
+
+        const elapsedHours = (
+            Date.parse(item.end_time) - Date.parse(item.start_time)
+        ) / 3600000;
+
+        client.assert(elapsedHours === 48, "Selisih waktu harus 48 jam");
+
+        client.assert(Array.isArray(item.timeline), "Timeline harus array");
+        client.assert(item.timeline.length > 0, "Timeline harus terisi");
+
+        item.timeline.forEach(function (event) {
+            client.assert(
+                /[+-]\d{2}:\d{2}$/.test(event.at),
+                "Waktu timeline harus menyertakan zona waktu"
+            );
+        });
+    });
+%}
+
+
+### 3. Nomor HP tidak cocok dengan booking
+POST {{baseUrl}}/bookings/track.php
+Content-Type: application/json
+
+{
+  "booking_code": "{{packageBookingCode}}",
+  "phone": "{{wrongPhone}}"
+}
+
+> {%
+    client.test("Tolak nomor HP yang tidak cocok", function () {
+        client.assert(response.status === 404, "Harus HTTP 404");
+        client.assert(response.body.code === "NOT_FOUND", "Harus NOT_FOUND");
+    });
+%}
+
+
+### 4. Format kode booking tidak valid
+POST {{baseUrl}}/bookings/track.php
+Content-Type: application/json
+
+{
+  "booking_code": "ABC",
+  "phone": "{{packagePhone}}"
+}
+
+> {%
+    client.test("Tolak format kode booking", function () {
+        client.assert(response.status === 422, "Harus HTTP 422");
+        client.assert(
+            response.body.code === "VALIDATION_ERROR",
+            "Harus VALIDATION_ERROR"
+        );
+    });
+%}
+
+
+### 5. Nomor HP harus berupa teks
+POST {{baseUrl}}/bookings/track.php
+Content-Type: application/json
+
+{
+  "booking_code": "{{packageBookingCode}}",
+  "phone": 12345
+}
+
+> {%
+    client.test("Tolak tipe data nomor HP", function () {
+        client.assert(response.status === 422, "Harus HTTP 422");
+    });
+%}
+
+
+### 6. Method GET ditolak
+GET {{baseUrl}}/bookings/track.php
+
+> {%
+    client.test("Tolak method GET", function () {
+        client.assert(response.status === 405, "Harus HTTP 405");
+        client.assert(
+            response.body.code === "METHOD_NOT_ALLOWED",
+            "Harus METHOD_NOT_ALLOWED"
+        );
+    });
+%}

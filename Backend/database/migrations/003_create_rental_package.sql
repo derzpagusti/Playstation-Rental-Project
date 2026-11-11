@@ -1,4 +1,4 @@
--- Paket harga tetap buatan admin (contoh: 3 jam = Rp 25.000)
+-- Paket harga tetap buatan admin dengan durasi kelipatan 24 jam.
 CREATE TABLE rental_package
 (
     package_id     SERIAL PRIMARY KEY,

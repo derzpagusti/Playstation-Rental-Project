@@ -1,24 +1,34 @@
-window.NovaPS = window.NovaPS || {};
+(() => {
+    window.NovaPS = window.NovaPS || {};
 
-NovaPS.api = {
-    async get(path) {
-        const response = await fetch(`/api/${path}`, {
-            credentials: "same-origin",
-            cache: "no-store",
-            signal: AbortSignal.timeout(30000),
-        });
+    const baseUrl = (
+        document.currentScript.dataset.apiBase || "/api"
+    ).replace(/\/+$/, "");
 
-        const contentType = response.header.get("content-type") || "";
+    NovaPS.api = {
+        async get(path) {
+            const response = await fetch(
+                `${baseUrl}/${path.replace(/^\/+/, "")}`,
+                {
+                    credentials: "same-origin",
+                    cache: "no-store",
+                    signal: AbortSignal.timeout(15000),
+                }
+            );
 
-        if (!contentType.includes("application/json")) {
-            throw new Error("Server returned an incvalid response.")
-        }
+            const contentType = response.headers.get("content-type") || "";
 
-        const result = await response.json();
+            if (!contentType.includes("application/json")) {
+                throw new Error("Respons server bukan JSON. Periksa alamat API.");
+            }
 
-        if (!response.ok || result.success !== true) {
-            throw new Error(result.message || "Failed to load data.");
-        }
-        return result.data;
-    }
-};
+            const result = await response.json();
+
+            if (!response.ok || result.success !== true) {
+                throw new Error(result.message || "Data gagal dimuat.");
+            }
+
+            return result.data;
+        },
+    };
+})();

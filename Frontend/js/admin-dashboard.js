@@ -68,24 +68,8 @@
       var tr = ui.el("tr");
       tr.appendChild(ui.cell(order.customer.fullname));
       tr.appendChild(ui.cell(ui.stack(ui.unitNames(order))));
-      tr.appendChild(
-        ui.cell(
-          ui.stack(
-            order.items.map(function () {
-              return "1";
-            }),
-          ),
-        ),
-      );
-      tr.appendChild(
-        ui.cell(
-          ui.stack(
-            order.items.map(function (i) {
-              return NovaPS.formatDays(i.days);
-            }),
-          ),
-        ),
-      );
+      tr.appendChild(ui.cell(ui.stack(ui.unitCounts(order))));
+      tr.appendChild(ui.cell(ui.stack(ui.durationLines(order))));
       tr.appendChild(ui.cell(NovaPS.money(order.total)));
       tr.appendChild(ui.cell(ui.dateCell(order.createdAt)));
       tr.appendChild(ui.cell(ui.statusCell(order)));
@@ -115,11 +99,12 @@
         return total + pick(order);
       }, 0);
     }
+    // Extensions add income (and late fees), but no extra unit
     var units = function (o) {
-      return o.items.length;
+      return o.type === "extend" ? 0 : o.items.length;
     };
     var income = function (o) {
-      return o.total;
+      return o.total + (o.lateFee || 0);
     };
     var month = done.filter(function (o) {
       return monthKey(o) === thisMonth;
@@ -153,6 +138,7 @@
       });
       var per = { ps4: 0, ps5: 0 };
       list.forEach(function (o) {
+        if (o.type === "extend") return;
         o.items.forEach(function (item) {
           per[item.unit]++;
         });

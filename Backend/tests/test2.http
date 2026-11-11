@@ -1,0 +1,73 @@
+@baseUrl = http://localhost/playstation/backend/public/api
+@deviceId = 4
+
+@bookingCode = A43125F1
+@phone = 0899123456701
+@expectedExtraCost = 0
+
+
+### 1. Paket harus mengirim hari dan tipe data yang benar
+GET {{baseUrl}}/devices/pricing.php?device_id={{deviceId}}
+
+> {%
+    client.test("Respons paket harian benar", function () {
+        client.assert(response.status === 200, "Harus HTTP 200");
+
+        const packages = response.body.data.packages;
+
+        client.assert(packages.length > 0, "Pilih device yang memiliki paket aktif");
+
+        packages.forEach(function (p) {
+            client.assert(Number.isInteger(p.package_id), "ID harus integer");
+            client.assert(Number.isInteger(p.duration_days), "Hari harus integer");
+            client.assert(
+                p.duration_days * 24 === p.duration_hours,
+                "Konversi hari dan jam harus sesuai"
+            );
+            client.assert(
+                typeof p.package_price === "number",
+                "Harga paket harus number"
+            );
+        });
+    });
+%}
+
+
+### 2. Tracking mengambil biaya tambahan yang tersimpan
+POST {{baseUrl}}/bookings/track.php
+Content-Type: application/json
+
+{
+  "booking_code": "{{bookingCode}}",
+  "phone": "{{phone}}"
+}
+
+> {%
+    client.test("Biaya tambahan sesuai database", function () {
+        client.assert(response.status === 200, "Harus HTTP 200");
+
+        const item = response.body.data.items.find(
+            item => item.device_id === Number("{{deviceId}}")
+        );
+
+        client.assert(item !== undefined, "Device harus ada dalam booking");
+        client.assert(
+            item.extra_cost === Number("{{expectedExtraCost}}"),
+            "Biaya tambahan tidak sesuai database"
+        );
+    });
+%}
+
+
+### 3. Format lama memberikan petunjuk parameter yang benar
+GET {{baseUrl}}/devices/available.php?duration_hours=24
+
+> {%
+    client.test("Pesan validasi menyebut duration_days", function () {
+        client.assert(response.status === 422, "Harus HTTP 422");
+        client.assert(
+            response.body.message.includes("duration_days"),
+            "Pesan harus menyarankan duration_days"
+        );
+    });
+%}

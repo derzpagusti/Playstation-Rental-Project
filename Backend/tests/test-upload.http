@@ -1,0 +1,80 @@
+@baseUrl = http://localhost/playstation/backend/public
+@bookingCode = DEMO0004
+@phone = 082345678901
+
+### 1. Upload pertama — harapkan 200
+# Jalankan request yang sama lagi untuk menguji upload ulang — harapkan 409
+POST {{baseUrl}}/api/bookings/payment-proof.php
+Content-Type: multipart/form-data; boundary=proof-test
+
+--proof-test
+Content-Disposition: form-data; name="booking_code"
+
+{{bookingCode}}
+--proof-test
+Content-Disposition: form-data; name="phone"
+
+{{phone}}
+--proof-test
+Content-Disposition: form-data; name="payment_proof"; filename="bukti-uji.png"
+Content-Type: image/png
+
+< ./bukti-uji.png
+--proof-test--
+
+### 2. Tracking setelah upload — harapkan 200
+POST {{baseUrl}}/api/bookings/track.php
+Content-Type: application/json
+
+{
+  "booking_code": "{{bookingCode}}",
+  "phone": "{{phone}}"
+}
+
+> {%
+    client.test("Bukti tersimpan dan belum diverifikasi", function () {
+        client.assert(response.status === 200, "Harus HTTP 200");
+        client.assert(response.body.data.payment_proof_uploaded === true,
+            "Bukti pembayaran harus tersedia");
+        client.assert(response.body.data.payment_verified === false,
+            "Pembayaran belum diverifikasi admin");
+    });
+%}
+
+### 3. File teks menyamar sebagai PNG — harapkan 422
+POST {{baseUrl}}/api/bookings/payment-proof.php
+Content-Type: multipart/form-data; boundary=proof-test
+
+--proof-test
+Content-Disposition: form-data; name="booking_code"
+
+{{bookingCode}}
+--proof-test
+Content-Disposition: form-data; name="phone"
+
+{{phone}}
+--proof-test
+Content-Disposition: form-data; name="payment_proof"; filename="palsu.png"
+Content-Type: image/png
+
+Ini adalah teks, bukan gambar.
+--proof-test--
+
+> {%
+    client.test("File palsu ditolak", function () {
+        client.assert(response.status === 422, "Harus HTTP 422");
+        client.assert(response.body.code === "VALIDATION_ERROR",
+            "Harus VALIDATION_ERROR");
+    });
+%}
+
+### 4. Metode salah — harapkan 405
+GET {{baseUrl}}/api/bookings/payment-proof.php
+
+> {%
+    client.test("GET ditolak", function () {
+        client.assert(response.status === 405, "Harus HTTP 405");
+        client.assert(response.body.code === "METHOD_NOT_ALLOWED",
+            "Harus METHOD_NOT_ALLOWED");
+    });
+%}

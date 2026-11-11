@@ -54,6 +54,11 @@
   /* ---------- live stock on the unit cards ---------- */
 
   function updateStock() {
+    document.querySelectorAll("[data-price]").forEach(function (el) {
+      el.textContent = NovaPS.money(
+        NovaPS.PRODUCTS[el.dataset.price].price,
+      ).toUpperCase();
+    });
     document.querySelectorAll("[data-stock]").forEach(function (el) {
       var left = NovaPS.stock.get(el.dataset.stock);
       el.textContent = left > 0 ? "Available: " + left : "Sold out";

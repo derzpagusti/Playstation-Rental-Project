@@ -1,0 +1,26 @@
+# --- Aplikasi ---
+APP_ENV=local
+APP_DEBUG=true
+APP_TIMEZONE=Asia/Jakarta
+
+# --- Database PostgreSQL ---
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=ps_rental
+DB_USER=nero
+DB_PASSWORD=1234567890
+
+#--- SESSION ---
+SESSION_LIFETIME=28800
+# --- CORS: origin frontend, pisahkan dengan koma ---
+CORS_ALLOWED_ORIGINS=http://localhost:63342,http://127.0.0.1:5500
+
+# --- Aturan bisnis ---
+BOOKING_MAX_ACTIVE=2
+
+#-- Database SUPABASE ---
+DB_SUPA_HOST=aws-0-ap-southeast-1.pooler.supabase.com
+DB_SUPA_PORT=5432
+DB_SUPA_DATABASE=postgres
+DB_SUPA_USER=postgres.qclicffrpdnqkwlqycbm
+DB_SUPA_PASSWORD=AOR3UOktXK2vwCuZ

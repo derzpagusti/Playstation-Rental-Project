@@ -1,0 +1,39 @@
+@base = http://localhost/playstation/backend/public/api
+
+### A. Dua console, durasi bebas (harus 201)
+< {%
+    const d = new Date(Date.now() + 60 * 60 * 1000);
+    const p = n => String(n).padStart(2, '0');
+    client.global.set("start", `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}:00`);
+    client.global.set("newphone", "08" + String(Math.floor(Math.random() * 1e10)).padStart(10, "0"));
+%}
+POST {{base}}/bookings/create.php
+Content-Type: application/json
+
+{ "full_name": "Tester", "phone": "{{newphone}}", "start_time": "{{start}}",
+  "payment_method": "QRIS",
+  "items": [ { "device_id": 3, "duration_hours": 5 }, { "device_id": 1, "duration_hours": 2 } ] }
+
+### B. Satu paket + satu durasi bebas (harus 201)
+POST {{base}}/bookings/create.php
+Content-Type: application/json
+
+{ "full_name": "Tester", "phone": "{{newphone}}", "start_time": "{{start}}",
+  "payment_method": "Cash",
+  "items": [ { "device_id": 1, "package_id": 2 }, { "device_id": 4, "duration_hours": 3 } ] }
+
+### C. Item kedua tidak ada (harus 404, dan tidak ada yang tersimpan)
+POST {{base}}/bookings/create.php
+Content-Type: application/json
+
+{ "full_name": "Tester", "phone": "{{newphone}}", "start_time": "{{start}}",
+  "payment_method": "QRIS",
+  "items": [ { "device_id": 3, "duration_hours": 2 }, { "device_id": 999, "duration_hours": 2 } ] }
+
+### D. Device ganda (harus 422)
+POST {{base}}/bookings/create.php
+Content-Type: application/json
+
+{ "full_name": "Tester", "phone": "{{newphone}}", "start_time": "{{start}}",
+  "payment_method": "QRIS",
+  "items": [ { "device_id": 3, "duration_hours": 2 }, { "device_id": 3, "duration_hours": 4 } ] }

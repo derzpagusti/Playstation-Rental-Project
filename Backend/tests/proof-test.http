@@ -1,0 +1,83 @@
+@baseUrl = http://localhost/playstation/backend/public
+# Ganti kedua angka berikut sesuai hasil query
+@bookingId = 4
+@withoutProofId = 5
+
+### 1. Login admin
+POST {{baseUrl}}/api/admin/login.php
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "admin12345"
+}
+
+> {%
+    client.test("Login berhasil", function () {
+        client.assert(response.status === 200, "Harus HTTP 200");
+        client.assert(response.body.success === true, "Login harus berhasil");
+    });
+%}
+
+### 2. Lihat bukti pembayaran — harapkan gambar
+GET {{baseUrl}}/api/admin/bookings/payment-proof.php?booking_id={{bookingId}}
+
+> {%
+    client.test("Bukti pembayaran dikirim sebagai gambar", function () {
+        client.assert(response.status === 200, "Harus HTTP 200");
+
+        const contentType = response.headers.valueOf("Content-Type");
+        client.assert(
+            contentType === "image/png" || contentType === "image/jpeg",
+            "Content-Type harus PNG atau JPEG"
+        );
+        client.assert(
+            response.headers.valueOf("Cache-Control").includes("no-store"),
+            "Respons harus memakai no-store"
+        );
+    });
+%}
+
+### 3. Booking belum punya bukti — harapkan 404
+GET {{baseUrl}}/api/admin/bookings/payment-proof.php?booking_id={{withoutProofId}}
+
+> {%
+    client.test("Bukti yang belum tersedia menghasilkan 404", function () {
+        client.assert(response.status === 404, "Harus HTTP 404");
+        client.assert(response.body.code === "NOT_FOUND", "Harus NOT_FOUND");
+    });
+%}
+
+### 4. ID tidak valid — harapkan 422
+GET {{baseUrl}}/api/admin/bookings/payment-proof.php?booking_id=0
+
+> {%
+    client.test("ID tidak valid ditolak", function () {
+        client.assert(response.status === 422, "Harus HTTP 422");
+        client.assert(response.body.code === "VALIDATION_ERROR",
+            "Harus VALIDATION_ERROR");
+    });
+%}
+
+### 5. Metode salah — harapkan 405
+POST {{baseUrl}}/api/admin/bookings/payment-proof.php?booking_id={{bookingId}}
+
+> {%
+    client.test("POST ditolak", function () {
+        client.assert(response.status === 405, "Harus HTTP 405");
+    });
+%}
+
+### 6. Logout
+POST {{baseUrl}}/api/admin/logout.php
+
+### 7. Akses tanpa login — harapkan 401
+GET {{baseUrl}}/api/admin/bookings/payment-proof.php?booking_id={{bookingId}}
+
+> {%
+    client.test("Gambar memerlukan login", function () {
+        client.assert(response.status === 401, "Harus HTTP 401");
+        client.assert(response.body.code === "UNAUTHORIZED",
+            "Harus UNAUTHORIZED");
+    });
+%}

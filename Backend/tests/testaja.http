@@ -1,0 +1,126 @@
+@baseUrl = http://localhost/playstation/backend/public
+@deviceId = 4
+
+### 1. Buat booking awal — harapkan 201
+< {%
+    const futureWib = new Date(
+        Date.now() + 3 * 24 * 60 * 60 * 1000 + 7 * 60 * 60 * 1000
+    );
+    const phone = "08" + Date.now().toString().slice(-11);
+
+    client.global.set("helperPhone", phone);
+    client.global.set("helperBody", JSON.stringify({
+        full_name: "Customer Uji Helpers",
+        phone: phone,
+        start_time: futureWib.toISOString().slice(0, 19),
+        payment_method: "QRIS",
+        items: [{
+            device_id: 4,
+            duration_hours: 2
+        }]
+    }));
+%}
+
+POST {{baseUrl}}/api/bookings/create.php
+Content-Type: application/json
+
+{{helperBody}}
+
+> {%
+    client.test("Booking awal berhasil", function () {
+        client.assert(response.status === 201, "Harus HTTP 201");
+        client.assert(response.body.data.payment.status === "Pending",
+            "Status harus Pending");
+
+        client.global.set("helperFirstCode", response.body.data.booking_code);
+        client.log("Booking pertama: " + response.body.data.booking_code);
+    });
+%}
+
+### 2. Slot Pending masih ditahan — harapkan 409
+POST {{baseUrl}}/api/bookings/create.php
+Content-Type: application/json
+
+{{helperBody}}
+
+> {%
+    client.test("Slot aktif tidak bisa dipesan ganda", function () {
+        client.assert(response.status === 409, "Harus HTTP 409");
+        client.assert(response.body.code === "SLOT_TAKEN", "Harus SLOT_TAKEN");
+    });
+%}
+
+### SEBELUM REQUEST 3
+# Jalankan SQL di database console PhpStorm.
+# Ganti KODE_PERTAMA dengan kode dari respons request 1:
+#
+# UPDATE booking
+# SET payment_expires_at = NOW() - INTERVAL '1 minute'
+# WHERE booking_code = 'KODE_PERTAMA'
+#   AND payment_status = 'Pending';
+
+### 3. Booking setelah expiry — harapkan 201
+POST {{baseUrl}}/api/bookings/create.php
+Content-Type: application/json
+
+{{helperBody}}
+
+> {%
+    client.test("Expiry membebaskan slot", function () {
+        client.assert(response.status === 201, "Harus HTTP 201");
+        client.assert(
+            response.body.data.booking_code !== client.global.get("helperFirstCode"),
+            "Harus membuat booking baru"
+        );
+
+        client.global.set("helperSecondCode", response.body.data.booking_code);
+        client.log("Booking kedua: " + response.body.data.booking_code);
+    });
+%}
+
+### 4. Tracking booking pertama — harapkan rental Cancelled
+POST {{baseUrl}}/api/bookings/track.php
+Content-Type: application/json
+
+{
+  "booking_code": "{{helperFirstCode}}",
+  "phone": "{{helperPhone}}"
+}
+
+> {%
+    client.test("Rental booking expired sudah dibatalkan", function () {
+        client.assert(response.status === 200, "Harus HTTP 200");
+        client.assert(response.body.data.items.length > 0,
+            "Item harus tersedia");
+        client.assert(
+            response.body.data.items.every(item => item.rental_status === "Cancelled"),
+            "Semua item booking pertama harus Cancelled"
+        );
+    });
+%}
+
+### SEBELUM REQUEST 5
+# Simulasikan pembatalan booking kedua melalui SQL lokal.
+# Sengaja biarkan rental masih Booked untuk menguji filter slot.
+# Ganti KODE_KEDUA dengan kode dari respons request 3:
+#
+# UPDATE booking
+# SET payment_status = 'Cancelled',
+#     cancelled_at = NOW(),
+#     cancel_reason = 'Pengujian helper lokal'
+# WHERE booking_code = 'KODE_KEDUA'
+#   AND payment_status = 'Pending';
+
+### 5. Booking Cancelled tidak menahan slot — harapkan 201
+POST {{baseUrl}}/api/bookings/create.php
+Content-Type: application/json
+
+{{helperBody}}
+
+> {%
+    client.test("Booking Cancelled tidak memblokir slot", function () {
+        client.assert(response.status === 201, "Harus HTTP 201");
+        client.assert(response.body.data.payment.status === "Pending",
+            "Booking baru harus Pending");
+    });
+%}

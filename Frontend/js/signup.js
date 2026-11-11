@@ -15,6 +15,9 @@
     upload.toggleAttribute("data-has-image", isImage);
   });
 
+  var button = form.querySelector('button[type="submit"]');
+  button.dataset.label = button.textContent;
+
   NovaPS.initForm(form, function () {
     var profile = {
       fullname: form.elements.fullname.value.trim(),
@@ -22,6 +25,16 @@
       address: form.elements.address.value.trim(),
       email: form.elements.email.value.trim(),
     };
+
+    if (NovaPS.users.isBlocked(profile.email)) {
+      var field = form.elements.email.closest("[data-field]");
+      field.setAttribute("data-invalid", "");
+      field.querySelector("[data-error]").textContent =
+        "This account has been blocked. Please contact the admin.";
+      button.disabled = false;
+      button.textContent = button.dataset.label;
+      return;
+    }
 
     // TODO: send the sign up data (including the ID card image) to the backend API.
     // Demo: keep the data in this browser so "My Profile" can show it.

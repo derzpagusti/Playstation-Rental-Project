@@ -5,3 +5,5 @@
 @import "./partials/tabs.css";
 @source "../pages/time-remaining.html";
 @source "../js/time-remaining.js";
+@source "../js/shared/orders.js";
+@source "../js/shared/rental-alerts.js";

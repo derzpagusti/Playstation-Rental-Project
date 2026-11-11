@@ -61,12 +61,23 @@
         NovaPS.PRODUCTS[i.unit].name + " (" + NovaPS.formatDays(i.days) + ")"
       );
     });
-    info.appendChild(el("p", "font-semibold text-black", names.join(" + ")));
+    var extension = order.type === "extend";
+    info.appendChild(
+      el(
+        "p",
+        "font-semibold text-black",
+        names.join(" + ") + (extension ? " (Extend)" : ""),
+      ),
+    );
     info.appendChild(
       el(
         "p",
         "text-[13px] break-words text-slate-500",
-        units.join(", ") + " · " + order.customer.address,
+        extension
+          ? names.join(" + ") +
+              ", Extend " +
+              NovaPS.formatDays(order.items[0].days)
+          : units.join(", ") + " · " + order.customer.address,
       ),
     );
     info.appendChild(
@@ -100,6 +111,17 @@
     var actions = el("div", "mt-3 flex flex-wrap justify-end gap-2");
     actions.appendChild(link("Look Detail", detail, BTN_OUTLINE));
     if (order.status === "not_paid") {
+      var cancel = el(
+        "button",
+        BTN +
+          " border-red-600 bg-white text-red-600 hover:bg-red-600 hover:text-white",
+        "Cancel",
+      );
+      cancel.type = "button";
+      cancel.addEventListener("click", function () {
+        NovaPS.askCancel(order.id, render); // asks for a reason, then refreshes the list
+      });
+      actions.appendChild(cancel);
       actions.appendChild(
         link(
           "Pay Now",
@@ -108,7 +130,7 @@
         ),
       );
     }
-    if (order.status === "complete") {
+    if (order.status === "returned" && !extension) {
       actions.appendChild(
         link(
           "Order Again",
@@ -139,7 +161,11 @@
       current === "all"
         ? orders
         : orders.filter(function (o) {
-            return o.status === current.replace("-", "_");
+            var status = current.replace("-", "_");
+            return (
+              o.status === status ||
+              (status === "complete" && o.status === "returned")
+            );
           });
 
     list.textContent = "";

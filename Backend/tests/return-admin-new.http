@@ -1,0 +1,198 @@
+@baseUrl = http://localhost/playstation/backend/public/api
+
+@adminUsername = admin
+@adminPassword = admin12345
+
+# Rental Rented atau Overdue.
+@returnableRentalId = 1
+
+# Rental Booked; berbeda dari fixture yang dibuat kedaluwarsa.
+@bookedRentalId = 7
+
+# Rental Cancelled atau rental DEMO0004 yang dibuat kedaluwarsa.
+@cancelledRentalId = 5
+
+
+### 1. Login admin
+POST {{baseUrl}}/admin/login.php
+Content-Type: application/json
+
+{
+  "username": "{{adminUsername}}",
+  "password": "{{adminPassword}}"
+}
+
+> {%
+    client.test("Login berhasil", function () {
+        client.assert(response.status === 200, "Harus HTTP 200");
+        client.assert(response.body.success === true, "Login harus berhasil");
+    });
+%}
+
+
+### 2. Rental Booked tidak boleh dikembalikan
+POST {{baseUrl}}/admin/bookings/return.php
+Content-Type: application/json
+
+{
+  "rental_id": {{bookedRentalId}}
+}
+
+> {%
+    client.test("Tolak rental Booked", function () {
+        client.assert(response.status === 409, "Harus HTTP 409");
+        client.assert(
+            response.body.code === "INVALID_STATUS_TRANSITION",
+            "Kode error tidak sesuai"
+        );
+    });
+%}
+
+
+### 3. Rental Cancelled tidak boleh dikembalikan
+POST {{baseUrl}}/admin/bookings/return.php
+Content-Type: application/json
+
+{
+  "rental_id": {{cancelledRentalId}}
+}
+
+> {%
+    client.test("Tolak rental Cancelled", function () {
+        client.assert(response.status === 409, "Harus HTTP 409");
+        client.assert(
+            response.body.code === "INVALID_STATUS_TRANSITION",
+            "Kode error tidak sesuai"
+        );
+    });
+%}
+
+
+### 4. Kembalikan rental Rented atau Overdue
+POST {{baseUrl}}/admin/bookings/return.php
+Content-Type: application/json
+
+{
+  "rental_id": {{returnableRentalId}},
+  "condition_at_return": "Baik",
+  "condition_notes": "Konsol, controller, dan kabel lengkap"
+}
+
+> {%
+    client.test("Pengembalian berhasil", function () {
+        client.assert(response.status === 200, "Harus HTTP 200");
+
+        const data = response.body.data;
+
+        client.assert(
+            data.rental_id === Number("{{returnableRentalId}}"),
+            "ID rental tidak sesuai"
+        );
+        client.assert(
+            data.rental_status === "Returned",
+            "Status harus Returned"
+        );
+        client.assert(
+            typeof data.booking_all_returned === "boolean",
+            "booking_all_returned harus boolean"
+        );
+        client.assert(
+            /[+-]\d{2}:\d{2}$/.test(data.returned_at),
+            "Waktu harus menyertakan zona waktu"
+        );
+        client.assert(
+            !Number.isNaN(Date.parse(data.returned_at)),
+            "Waktu pengembalian harus valid"
+        );
+    });
+%}
+
+
+### 5. Pengembalian ulang ditolak
+POST {{baseUrl}}/admin/bookings/return.php
+Content-Type: application/json
+
+{
+  "rental_id": {{returnableRentalId}}
+}
+
+> {%
+    client.test("Tolak pengembalian ulang", function () {
+        client.assert(response.status === 409, "Harus HTTP 409");
+        client.assert(
+            response.body.code === "INVALID_STATUS_TRANSITION",
+            "Kode error tidak sesuai"
+        );
+    });
+%}
+
+
+### 6. rental_id berupa teks ditolak
+POST {{baseUrl}}/admin/bookings/return.php
+Content-Type: application/json
+
+{
+  "rental_id": "123"
+}
+
+> {%
+    client.test("Tolak tipe data rental_id", function () {
+        client.assert(response.status === 422, "Harus HTTP 422");
+        client.assert(
+            response.body.code === "VALIDATION_ERROR",
+            "Kode error tidak sesuai"
+        );
+    });
+%}
+
+
+### 7. Rental tidak ditemukan
+POST {{baseUrl}}/admin/bookings/return.php
+Content-Type: application/json
+
+{
+  "rental_id": 2147483647
+}
+
+> {%
+    client.test("Rental tidak ditemukan", function () {
+        client.assert(response.status === 404, "Harus HTTP 404");
+        client.assert(response.body.code === "NOT_FOUND", "Kode tidak sesuai");
+    });
+%}
+
+
+### 8. Method GET ditolak
+GET {{baseUrl}}/admin/bookings/return.php
+
+> {%
+    client.test("Tolak method GET", function () {
+        client.assert(response.status === 405, "Harus HTTP 405");
+    });
+%}
+
+
+### 9. Logout admin
+POST {{baseUrl}}/admin/logout.php
+
+> {%
+    client.test("Logout berhasil", function () {
+        client.assert(response.status === 200, "Harus HTTP 200");
+    });
+%}
+
+
+### 10. Pengembalian tanpa sesi ditolak
+POST {{baseUrl}}/admin/bookings/return.php
+Content-Type: application/json
+
+{
+  "rental_id": {{returnableRentalId}}
+}
+
+> {%
+    client.test("Pengembalian wajib login", function () {
+        client.assert(response.status === 401, "Harus HTTP 401");
+        client.assert(response.body.code === "UNAUTHORIZED", "Kode tidak sesuai");
+    });
+%}

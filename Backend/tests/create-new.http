@@ -1,0 +1,257 @@
+@baseUrl = http://localhost/playstation/backend/public/api
+@deviceId = 4
+
+@dailyTestPhone = 0899123456701
+@dailyStart = 2026-12-15T10:00:00
+@dailyPackageStart = 2026-12-20T10:00:00
+
+@dailyPackageId = 4
+@dailyDevicePrice = 100000
+@dailyPackagePrice = 200000
+
+
+### 1. Ambil tarif dan paket untuk pengujian
+GET {{baseUrl}}/devices/pricing.php?device_id={{deviceId}}
+
+> {%
+    client.test("Siapkan data pengujian", function () {
+        client.assert(response.status === 200, "Harus HTTP 200");
+
+        const device = response.body.data;
+        const pkg = device.packages.find(p => p.duration_days === 2);
+
+        client.assert(device.status === "Available", "Device harus Available");
+        client.assert(pkg !== undefined, "Paket aktif dua hari harus tersedia");
+
+        client.global.set("dailyDevicePrice", device.price_per_day);
+        client.global.set("dailyPackageId", pkg.package_id);
+        client.global.set("dailyPackagePrice", pkg.package_price);
+
+        // Format waktu lokal WIB tanpa offset untuk request backend.
+        function futureWib(days) {
+            const timestamp = Date.now()
+                + days * 24 * 60 * 60 * 1000
+                + 7 * 60 * 60 * 1000;
+
+            return new Date(timestamp).toISOString().slice(0, 19);
+        }
+
+        client.global.set("dailyStart", futureWib(30));
+        client.global.set("dailyPackageStart", futureWib(40));
+    });
+%}
+
+
+### 2. Booking biasa selama dua hari
+POST {{baseUrl}}/bookings/create.php
+Content-Type: application/json
+
+{
+  "full_name": "Pengujian Booking Harian",
+  "phone": "{{dailyTestPhone}}",
+  "start_time": "{{dailyStart}}",
+  "payment_method": "Cash",
+  "items": [
+    {
+      "device_id": {{deviceId}},
+      "duration_days": 2
+    }
+  ]
+}
+
+> {%
+    client.test("Booking dua hari berhasil", function () {
+        client.assert(response.status === 201, "Harus HTTP 201");
+
+        const data = response.body.data;
+        const item = data.items[0];
+        const price = Number("{{dailyDevicePrice}}");
+
+        client.assert(/^[A-Z0-9]{8}$/.test(data.booking_code), "Kode booking tidak valid");
+        client.assert(item.duration_days === 2, "Durasi harus dua hari");
+        client.assert(item.duration_hours === 48, "Durasi harus 48 jam");
+        client.assert(item.price_per_day === price, "Tarif harus mengikuti database");
+        client.assert(item.total_cost === price * 2, "Total item tidak sesuai");
+        client.assert(data.total_cost === price * 2, "Total booking tidak sesuai");
+        client.assert(item.package_id === null, "Bukan mode paket");
+        client.assert(item.rental_status === "Booked", "Status rental harus Booked");
+        client.assert(data.payment.status === "Pending", "Pembayaran harus Pending");
+        client.assert(data.payment.expires_at === null, "Cash tidak memiliki deadline");
+        client.assert(data.payment.seconds_left === null, "Cash tidak memiliki countdown");
+
+        const elapsedHours = (
+            Date.parse(item.end_time) - Date.parse(data.start_time)
+        ) / 3600000;
+
+        client.assert(elapsedHours === 48, "Selisih waktu harus tepat 48 jam");
+
+        client.global.set("dailyBookingCode", data.booking_code);
+    });
+%}
+
+
+### 3. Jadwal yang sama harus ditolak
+POST {{baseUrl}}/bookings/create.php
+Content-Type: application/json
+
+{
+  "full_name": "Pengujian Booking Harian",
+  "phone": "{{dailyTestPhone}}",
+  "start_time": "{{dailyStart}}",
+  "payment_method": "Cash",
+  "items": [
+    {
+      "device_id": {{deviceId}},
+      "duration_days": 1
+    }
+  ]
+}
+
+> {%
+    client.test("Tolak jadwal bentrok", function () {
+        client.assert(response.status === 409, "Harus HTTP 409");
+        client.assert(response.body.code === "SLOT_TAKEN", "Harus SLOT_TAKEN");
+    });
+%}
+
+
+### 4. Booking memakai paket dua hari pada jadwal berbeda
+POST {{baseUrl}}/bookings/create.php
+Content-Type: application/json
+
+{
+  "full_name": "Pengujian Booking Harian",
+  "phone": "{{dailyTestPhone}}",
+  "start_time": "{{dailyPackageStart}}",
+  "payment_method": "Cash",
+  "items": [
+    {
+      "device_id": {{deviceId}},
+      "package_id": {{dailyPackageId}}
+    }
+  ]
+}
+
+> {%
+    client.test("Booking paket berhasil", function () {
+        client.assert(response.status === 201, "Harus HTTP 201");
+
+        const data = response.body.data;
+        const item = data.items[0];
+        const packageId = Number("{{dailyPackageId}}");
+        const packagePrice = Number("{{dailyPackagePrice}}");
+
+        client.assert(item.package_id === packageId, "ID paket tidak sesuai");
+        client.assert(item.duration_days === 2, "Durasi harus dua hari");
+        client.assert(item.duration_hours === 48, "Durasi harus 48 jam");
+        client.assert(item.price_per_day === null, "Paket menggunakan harga tetap");
+        client.assert(item.total_cost === packagePrice, "Harga paket tidak sesuai");
+        client.assert(data.total_cost === packagePrice, "Total booking tidak sesuai");
+
+        const elapsedHours = (
+            Date.parse(item.end_time) - Date.parse(data.start_time)
+        ) / 3600000;
+
+        client.assert(elapsedHours === 48, "Selisih waktu harus tepat 48 jam");
+
+        client.global.set("dailyPackageBookingCode", data.booking_code);
+    });
+%}
+
+
+### 5. Durasi pecahan ditolak sebelum transaksi
+POST {{baseUrl}}/bookings/create.php
+Content-Type: application/json
+
+{
+  "full_name": "Pengujian Booking Harian",
+  "phone": "{{dailyTestPhone}}",
+  "start_time": "{{dailyStart}}",
+  "payment_method": "Cash",
+  "items": [
+    {
+      "device_id": {{deviceId}},
+      "duration_days": 1.5
+    }
+  ]
+}
+
+> {%
+    client.test("Tolak durasi pecahan", function () {
+        client.assert(response.status === 422, "Harus HTTP 422");
+        client.assert(response.body.code === "VALIDATION_ERROR", "Kode tidak sesuai");
+    });
+%}
+
+
+### 6. Durasi melebihi tujuh hari ditolak
+POST {{baseUrl}}/bookings/create.php
+Content-Type: application/json
+
+{
+  "full_name": "Pengujian Booking Harian",
+  "phone": "{{dailyTestPhone}}",
+  "start_time": "{{dailyStart}}",
+  "payment_method": "Cash",
+  "items": [
+    {
+      "device_id": {{deviceId}},
+      "duration_days": 8
+    }
+  ]
+}
+
+> {%
+    client.test("Tolak durasi melebihi batas", function () {
+        client.assert(response.status === 422, "Harus HTTP 422");
+    });
+%}
+
+
+### 7. Durasi dan paket sekaligus ditolak
+POST {{baseUrl}}/bookings/create.php
+Content-Type: application/json
+
+{
+  "full_name": "Pengujian Booking Harian",
+  "phone": "{{dailyTestPhone}}",
+  "start_time": "{{dailyStart}}",
+  "payment_method": "Cash",
+  "items": [
+    {
+      "device_id": {{deviceId}},
+      "duration_days": 2,
+      "package_id": {{dailyPackageId}}
+    }
+  ]
+}
+
+> {%
+    client.test("Tolak dua mode harga sekaligus", function () {
+        client.assert(response.status === 422, "Harus HTTP 422");
+    });
+%}
+
+
+### 8. Format lama per jam ditolak
+POST {{baseUrl}}/bookings/create.php
+Content-Type: application/json
+
+{
+  "full_name": "Pengujian Booking Harian",
+  "phone": "{{dailyTestPhone}}",
+  "start_time": "{{dailyStart}}",
+  "payment_method": "Cash",
+  "items": [
+    {
+      "device_id": {{deviceId}},
+      "duration_hours": 24
+    }
+  ]
+}
+
+> {%
+    client.test("Tolak format lama", function () {
+        client.assert(response.status === 422, "Harus HTTP 422");
+    });
+%}

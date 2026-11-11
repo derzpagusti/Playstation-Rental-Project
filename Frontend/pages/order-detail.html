@@ -17,6 +17,8 @@
     ></script>
     <script src="../js/shared/navbar.js" defer></script>
     <script src="../js/shared/orders.js" defer></script>
+    <script src="../js/shared/cancel-order.js" defer></script>
+    <script src="../js/shared/rental-alerts.js" defer></script>
     <script src="../js/order-detail.js" defer></script>
   </head>
   <body
@@ -199,7 +201,9 @@
           <p id="countdown" class="font-display text-4xl font-bold text-black">
             05:00
           </p>
-          <p class="text-[11px] text-slate-400">Time left to pay</p>
+          <p id="pay-box-label" class="text-[11px] text-slate-400">
+            Time left to pay
+          </p>
         </div>
         <div id="rows" class="mt-4 border-t border-slate-300 pt-1.5"></div>
         <p
@@ -213,6 +217,14 @@
             class="btn border-2 border-slate-400 bg-white px-6 py-2.5 text-base font-semibold text-slate-500 hover:bg-slate-500 hover:text-white"
             >Back to the home page</a
           >
+          <button
+            type="button"
+            id="act-cancel"
+            hidden
+            class="btn border-2 border-red-600 bg-white px-6 py-2.5 text-base font-semibold text-red-600 hover:bg-red-600 hover:text-white"
+          >
+            Cancel Order
+          </button>
           <a
             id="act-pay"
             href="payment.html"
@@ -226,6 +238,13 @@
             hidden
             class="btn btn-indigo px-6 py-2.5 text-base font-semibold"
             >Order Again</a
+          >
+          <a
+            id="act-extend"
+            href="extend.html"
+            hidden
+            class="btn btn-indigo px-6 py-2.5 text-base font-semibold"
+            >Extend rental</a
           >
           <a
             id="act-status"

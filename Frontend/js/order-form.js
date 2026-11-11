@@ -15,6 +15,11 @@
     location.replace("../index.html");
     return;
   }
+  // Overdue rental: no new orders until the unit is returned or extended
+  if (NovaPS.rentals.overdue().length) {
+    location.replace("time-remaining.html");
+    return;
+  }
 
   function $(id) {
     return document.getElementById(id);
@@ -130,6 +135,9 @@
     var stock = {};
     Object.keys(PRODUCTS).forEach(function (unit) {
       stock[unit] = NovaPS.stock.get(unit);
+    });
+    form.querySelectorAll("[data-price]").forEach(function (el) {
+      el.textContent = NovaPS.money(PRODUCTS[el.dataset.price].price) + "/day";
     });
     var selected = blocks.map(unitOf);
     var stockProblem = false;

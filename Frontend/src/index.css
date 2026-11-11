@@ -5,6 +5,8 @@
 @source "../index.html";
 @source "../js/index.js";
 
+@source "../js/shared/rental-alerts.js";
+
 @layer components {
   /* Green check bullet for unit features */
   .feature {

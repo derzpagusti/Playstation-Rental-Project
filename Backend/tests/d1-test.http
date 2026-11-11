@@ -1,0 +1,49 @@
+@baseUrl = http://localhost/playstation/backend/public/api
+
+### 1. Uji Tanpa Login -> 401 UNAUTHORIZED
+POST {{baseUrl}}/admin/logout.php
+
+###
+GET {{baseUrl}}/admin/bookings/detail.php?booking_id=1
+
+### 2. Login sebagai Admin
+POST {{baseUrl}}/admin/login.php
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "admin12345"
+}
+
+### 3. Uji DEMO0001 (booking_id=1)
+# PS3 Playbox 02 lalu PS4 Playbox 01. Budi Santoso, verified_by "Reza Mahardika", proof_uploaded true.
+# PS4: package_name terisi, price_per_hour null, extra_hours 1, extra_cost 10000, total_cost 35000.
+# PS3: price_per_hour 8000, total_cost 16000. Total pesanan 51000.
+GET {{baseUrl}}/admin/bookings/detail.php?booking_id=1
+
+### 4. Uji DEMO0002 (booking_id=2)
+# PS3 Playbox 01 Overdue, timeline 3 langkah, deposit "Kartu Pelajar", proof_uploaded false
+GET {{baseUrl}}/admin/bookings/detail.php?booking_id=2
+
+### 5. Uji DEMO0003 (booking_id=3)
+# Returned, deposit.returned_at terisi, catatan kondisi Good, Good, Slight scratch
+GET {{baseUrl}}/admin/bookings/detail.php?booking_id=3
+
+### 6. Uji DEMO0004 (booking_id=4)
+# verified_by null, verified false, proof_uploaded false, timeline Booked saja
+GET {{baseUrl}}/admin/bookings/detail.php?booking_id=4
+
+### 7. Uji booking_id=999 -> 404 NOT_FOUND
+GET {{baseUrl}}/admin/bookings/detail.php?booking_id=999
+
+### 8. Uji booking_id tidak valid -> 422 VALIDATION_ERROR
+GET {{baseUrl}}/admin/bookings/detail.php?booking_id=abc
+
+###
+GET {{baseUrl}}/admin/bookings/detail.php?booking_id=0
+
+###
+GET {{baseUrl}}/admin/bookings/detail.php
+
+### 9. Uji Metode Salah -> 405 METHOD_NOT_ALLOWED
+POST {{baseUrl}}/admin/bookings/detail.php?booking_id=1

@@ -1,0 +1,51 @@
+@baseUrl = http://localhost/playstation/backend/public/api
+
+### 1. Uji 200 OK - DEMO0001 (Budi: 2 console, huruf kecil + strip di nomor HP)
+# Menguji normalisasi huruf kecil 'demo0001' dan format HP '0812-3456-7890'
+# Total cost harus 51000 (16000 + 35000)
+POST {{baseUrl}}/bookings/track.php
+Content-Type: application/json
+
+{
+  "booking_code": "DEMO0001",
+  "phone": "081234567890"
+}
+
+### 2. Uji 200 OK - DEMO0002 (Sinta: Status Overdue)
+# Timeline harus memuat Booked -> Rented -> Overdue
+POST {{baseUrl}}/bookings/track.php
+Content-Type: application/json
+
+{
+  "booking_code": "DEMO0002",
+  "phone": "+62 823-4567-8901"
+}
+
+### 3. Uji 200 OK - DEMO0003 (Rafi: Status Returned)
+# Timeline harus memuat Booked -> Rented -> Returned
+POST {{baseUrl}}/bookings/track.php
+Content-Type: application/json
+
+{
+  "booking_code": "DEMO0003",
+  "phone": "083456789012"
+}
+
+### 4. Uji 404 NOT_FOUND - Kode Booking Benar, Nomor HP Salah
+# Pesan error harus sama persis dengan saat kode booking tidak ada
+POST {{baseUrl}}/bookings/track.php
+Content-Type: application/json
+
+{
+  "booking_code": "DEMO0001",
+  "phone": "089999999999"
+}
+
+### 5. Uji 422 VALIDATION_ERROR - Kode Booking Bukan 8 Karakter
+POST {{baseUrl}}/bookings/track.php
+Content-Type: application/json
+
+{
+  "booking_code": "DEMO1",
+  "phone": "081234567890"
+}

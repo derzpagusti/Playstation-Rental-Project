@@ -1,0 +1,184 @@
+@baseUrl = http://localhost/playstation/backend/public
+@deviceId = 4
+
+### 1. Buat booking QRIS untuk testing
+< {%
+    const start = new Date(
+        Date.now() + 3 * 24 * 60 * 60 * 1000 + 7 * 60 * 60 * 1000
+    );
+    const cashStart = new Date(
+        Date.now() + 4 * 24 * 60 * 60 * 1000 + 7 * 60 * 60 * 1000
+    );
+    const phone = "08" + Date.now().toString().slice(-11);
+
+    client.global.set("trackPhone", phone);
+    client.global.set("trackPhone62", "+62" + phone.slice(1));
+    client.global.set("trackStart", start.toISOString().slice(0, 19));
+    client.global.set("trackCashStart", cashStart.toISOString().slice(0, 19));
+%}
+
+POST {{baseUrl}}/api/bookings/create.php
+Content-Type: application/json
+
+{
+  "full_name": "Customer Uji Tracking",
+  "phone": "{{trackPhone}}",
+  "start_time": "{{trackStart}}",
+  "payment_method": "QRIS",
+  "items": [
+    {
+      "device_id": {{deviceId}},
+      "duration_hours": 2
+    }
+  ]
+}
+
+> {%
+    client.test("Booking uji berhasil dibuat", function () {
+        client.assert(response.status === 201, "Harus HTTP 201");
+
+        const code = response.body.data.booking_code;
+        client.global.set("trackCode", code);
+        client.global.set("trackLowerCode", code.toLowerCase());
+        client.log("Kode untuk SQL expiry: " + code);
+    });
+%}
+
+### 2. Tracking Pending, kode huruf kecil dan nomor +62 — harapkan 200
+POST {{baseUrl}}/api/bookings/track.php
+Content-Type: application/json
+
+{
+  "booking_code": "{{trackLowerCode}}",
+  "phone": "{{trackPhone62}}"
+}
+
+> {%
+    client.test("Tracking mendukung normalisasi dan countdown", function () {
+        client.assert(response.status === 200, "Harus HTTP 200");
+
+        const data = response.body.data;
+        client.assert(data.booking_code === client.global.get("trackCode"),
+            "Kode booking harus sesuai");
+        client.assert(data.payment.status === "Pending", "Harus Pending");
+        client.assert(data.payment.seconds_left > 0, "Countdown harus positif");
+        client.assert(Date.parse(data.payment.expires_at) > Date.now(),
+            "Deadline harus di masa depan");
+        client.assert(data.payment_proof_uploaded === false,
+            "Bukti belum diunggah");
+        client.assert(data.payment_verified === false,
+            "Pembayaran belum diverifikasi");
+        client.assert(typeof data.total_cost === "number",
+            "Total biaya harus berupa angka");
+    });
+%}
+
+### 3. Nomor dengan format salah — harapkan 422
+POST {{baseUrl}}/api/bookings/track.php
+Content-Type: application/json
+
+{
+  "booking_code": "{{trackCode}}",
+  "phone": "abc"
+}
+
+> {%
+    client.test("Format nomor tidak valid ditolak", function () {
+        client.assert(response.status === 422, "Harus HTTP 422");
+        client.assert(response.body.code === "VALIDATION_ERROR",
+            "Harus VALIDATION_ERROR");
+    });
+%}
+
+### 4. Nomor valid tetapi bukan pemilik — harapkan 404
+POST {{baseUrl}}/api/bookings/track.php
+Content-Type: application/json
+
+{
+  "booking_code": "{{trackCode}}",
+  "phone": "0810000000000"
+}
+
+> {%
+    client.test("Pesanan tidak diberikan kepada nomor lain", function () {
+        client.assert(response.status === 404, "Harus HTTP 404");
+        client.assert(response.body.code === "NOT_FOUND", "Harus NOT_FOUND");
+    });
+%}
+
+### SEBELUM REQUEST 5
+# Jalankan di database console PhpStorm.
+# Ganti KODE_BOOKING dengan kode dari respons request 1.
+#
+# UPDATE booking
+# SET payment_expires_at = NOW() - INTERVAL '1 minute'
+# WHERE booking_code = 'KODE_BOOKING'
+#   AND payment_status = 'Pending';
+
+### 5. Tracking langsung memproses expiry — harapkan Expired
+POST {{baseUrl}}/api/bookings/track.php
+Content-Type: application/json
+
+{
+  "booking_code": "{{trackCode}}",
+  "phone": "{{trackPhone}}"
+}
+
+> {%
+    client.test("Tracking memperbarui booking kedaluwarsa", function () {
+        client.assert(response.status === 200, "Harus HTTP 200");
+
+        const data = response.body.data;
+        client.assert(data.payment.status === "Expired", "Harus Expired");
+        client.assert(data.payment.seconds_left === 0, "Countdown harus 0");
+        client.assert(data.items.length > 0, "Item harus tersedia");
+        client.assert(
+            data.items.every(item => item.rental_status === "Cancelled"),
+            "Semua rental harus Cancelled"
+        );
+    });
+%}
+
+### 6. Buat booking Cash pada jadwal berbeda
+POST {{baseUrl}}/api/bookings/create.php
+Content-Type: application/json
+
+{
+  "full_name": "Customer Uji Tracking",
+  "phone": "{{trackPhone}}",
+  "start_time": "{{trackCashStart}}",
+  "payment_method": "Cash",
+  "items": [
+    {
+      "device_id": {{deviceId}},
+      "duration_hours": 2
+    }
+  ]
+}
+
+> {%
+    client.test("Booking Cash berhasil dibuat", function () {
+        client.assert(response.status === 201, "Harus HTTP 201");
+        client.global.set("trackCashCode", response.body.data.booking_code);
+    });
+%}
+
+### 7. Tracking Cash — harapkan deadline dan countdown null
+POST {{baseUrl}}/api/bookings/track.php
+Content-Type: application/json
+
+{
+  "booking_code": "{{trackCashCode}}",
+  "phone": "{{trackPhone}}"
+}
+
+> {%
+    client.test("Cash tanpa countdown pembayaran", function () {
+        client.assert(response.status === 200, "Harus HTTP 200");
+
+        const payment = response.body.data.payment;
+        client.assert(payment.status === "Pending", "Harus Pending");
+        client.assert(payment.expires_at === null, "Deadline harus null");
+        client.assert(payment.seconds_left === null, "Countdown harus null");
+    });
+%}

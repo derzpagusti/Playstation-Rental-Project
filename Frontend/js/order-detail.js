@@ -1,7 +1,8 @@
 /*
  * Order Detail / receipt page (?order=<id>).
  * Requires js/shared/session.js and orders.js.
- * Shows the receipt that matches the order status (pending, canceled, ...).
+ * Shows the receipt that matches the order status (pending, canceled, ...),
+ * and the live countdown while the unit is in the customer's hands.
  */
 (function () {
   function $(id) {
@@ -46,8 +47,15 @@
     complete: {
       tone: "text-green-500",
       glyph: "check",
-      title: "Order Complete",
-      text: "Thank you for renting with NovaPS. Enjoy the game!",
+      title: "Enjoy Your Rental!",
+      text: "The unit is with you. Return it before the time runs out, or extend your rental.",
+      note: "",
+    },
+    returned: {
+      tone: "text-green-500",
+      glyph: "check",
+      title: "Unit Returned",
+      text: "Thank you for renting with NovaPS. We hope to see you again!",
       note: "You can order again anytime.",
     },
     canceled: {
@@ -66,13 +74,45 @@
     },
   };
 
+  // Extension orders have no "shipped" step and their own wording
+  var EXTENSION_VIEWS = {
+    not_paid: {
+      title: "Waiting for Payment",
+      text: "Pay before the time runs out to extend your rental.",
+    },
+    pending: {
+      title: "Extension Payment Received",
+      text: "Your extra time is already added to your rental. We are waiting for the admin to verify the payment.",
+    },
+    complete: {
+      title: "Extension Complete",
+      text: "Your rental time has been extended.",
+      note: "Check Time Remaining for your new deadline.",
+    },
+    canceled: { title: "Extension Canceled", text: "" },
+    rejected: {
+      title: "Extension Rejected",
+      text: "The extension was rejected, so the extra time was removed from your rental.",
+    },
+  };
+
   var badge = $("badge");
   var timer = null;
 
+  function when(iso) {
+    return NovaPS.formatDate(iso) + ", " + NovaPS.formatTime(iso);
+  }
+
   function render() {
     var order = NovaPS.orders.get(id);
-    var view = VIEWS[order.status];
+    var extension = order.type === "extend";
+    var view = Object.assign(
+      {},
+      VIEWS[order.status],
+      extension ? EXTENSION_VIEWS[order.status] : {},
+    );
     var status = NovaPS.STATUS[order.status];
+    var rental = !extension && order.status === "complete"; // unit is in the customer's hands
 
     badge.setAttribute(
       "class",
@@ -86,62 +126,108 @@
           ? "The payment time ran out, so this order was canceled automatically."
           : "You canceled this order."
         : view.text;
-    $("note").textContent = view.note;
+    $("note").textContent = view.note || "";
     $("note").hidden = !view.note;
 
-    // Rows: Order ID, Status, Customer, Address, Date (+ reason / notes), units, total
-    var extra = [
-      {
-        label: "Date",
-        value:
-          NovaPS.formatDate(order.createdAt) +
-          ", " +
-          NovaPS.formatTime(order.createdAt),
-      },
-    ];
+    // Rows: Order ID, Status, Customer, Address, Date (+ dates / reason / notes), units, total
+    var extra = [{ label: "Date", value: when(order.createdAt) }];
+    if (rental || order.status === "returned") {
+      if (order.completedAt)
+        extra.push({ label: "Delivered", value: when(order.completedAt) });
+      var due = new Date(NovaPS.rentals.dueAt(order)).toISOString();
+      if (rental) extra.push({ label: "Return before", value: when(due) });
+      if (order.extraDays)
+        extra.push({
+          label: "Extended",
+          value: "+" + NovaPS.formatDays(order.extraDays),
+        });
+      if (order.returnedAt)
+        extra.push({
+          label: "Returned",
+          value:
+            NovaPS.formatDate(order.returnedAt) +
+            (order.returnedLate ? " (overdue)" : ""),
+        });
+      if (order.lateFee)
+        extra.push({
+          label: "Late fee",
+          value: NovaPS.money(order.lateFee),
+          valueClass: "text-red-600",
+        });
+    }
     if (order.status === "canceled")
       extra.push({ label: "Reason", value: order.cancelReason });
+    if (order.status === "rejected" && order.rejectReason) {
+      extra.push({ label: "Reason", value: order.rejectReason });
+    }
+    var waiting = rental ? NovaPS.rentals.pendingExtension(order) : null;
+    if (waiting) {
+      extra.push({
+        label: "Extension",
+        value:
+          "+" +
+          NovaPS.formatDays(waiting.items[0].days) +
+          ", waiting for admin verification",
+        valueClass: "text-indigo-500",
+      });
+    }
     if (order.notes) extra.push({ label: "Notes", value: order.notes });
     order.extra = extra;
 
-    NovaPS.renderRows(
-      $("rows"),
-      NovaPS.summaryRows(
-        order,
-        [
-          { label: "Order ID", value: order.id },
-          { label: "Status", value: status.label, valueClass: status.text },
-        ],
-        true,
-      ),
-    );
+    var header = [{ label: "Order ID", value: order.id }];
+    if (extension)
+      header.push({ label: "Type", value: "Extension of " + order.parentId });
+    header.push({
+      label: "Status",
+      value: status.label,
+      valueClass: status.text,
+    });
+    NovaPS.renderRows($("rows"), NovaPS.summaryRows(order, header, true));
 
     var unpaid = order.status === "not_paid";
-    $("pay-box").hidden = !unpaid;
+    $("pay-box").hidden = !(unpaid || rental);
+    $("pay-box-label").textContent = rental
+      ? "Time remaining"
+      : "Time left to pay";
+    $("act-cancel").hidden = !unpaid;
     $("act-pay").hidden = !unpaid;
     $("act-pay").href = "payment.html?order=" + encodeURIComponent(order.id);
-    $("act-again").hidden = order.status !== "complete";
+    $("act-extend").hidden =
+      !rental || !!waiting || NovaPS.rentals.maxExtend(order) < 1;
+    $("act-extend").href = "extend.html?order=" + encodeURIComponent(order.id);
+    $("act-again").hidden = order.status !== "returned" || extension;
     $("act-again").href = "order-form.html?unit=" + order.items[0].unit;
 
     clearInterval(timer);
-    if (unpaid) {
+    if (unpaid || rental) {
       tick();
       timer = setInterval(tick, 1000);
     }
   }
 
-  // Unpaid receipt: live countdown, flips to "Canceled" when time is over
+  // Unpaid: 5 minute countdown (flips to "Canceled"). Rental: time left (green -> red).
   function tick() {
     var order = NovaPS.orders.get(id);
-    if (order.status !== "not_paid") {
+    var countdown = $("countdown");
+    if (order.status === "not_paid") {
+      countdown.textContent = NovaPS.formatClock(
+        NovaPS.orders.msLeft(order),
+        true,
+      );
+      countdown.className = "font-display text-4xl font-bold text-black";
+    } else if (order.status === "complete" && order.type !== "extend") {
+      var left = NovaPS.rentals.msLeft(order);
+      countdown.textContent = NovaPS.formatHMS(left);
+      countdown.className =
+        "font-display text-4xl font-bold " + NovaPS.rentalTone(left).text;
+    } else {
       render();
-      return;
     }
-    $("countdown").textContent = NovaPS.formatClock(
-      NovaPS.orders.msLeft(order),
-      true,
-    );
   }
+
+  $("act-cancel").addEventListener("click", function () {
+    NovaPS.askCancel(id, render); // asks for a reason, then shows the canceled receipt
+  });
 
   render();
 })();

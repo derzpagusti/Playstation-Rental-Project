@@ -12,8 +12,14 @@
     />
     <link rel="stylesheet" href="css/index.css" />
     <script src="js/shared/session.js"></script>
+    <script
+            src="js/shared/api.js"
+            data-api-base="/playstation/Backend/public/api"
+            defer
+    ></script>
     <script src="js/shared/navbar.js" defer></script>
     <script src="js/shared/orders.js" defer></script>
+    <script src="js/shared/rental-alerts.js" defer></script>
     <script src="js/index.js" defer></script>
   </head>
   <body class="bg-white text-slate-800">
@@ -397,13 +403,13 @@
           >
             <div class="flex justify-between text-[15px]">
               <strong class="font-semibold text-black">PS4</strong
-              ><span data-stock="ps4">Available: 10</span>
+              ><span data-stock="ps4">Loading availability…</span>
             </div>
             <p
               class="mb-[18px] mt-9 font-display text-[32px] font-bold text-black"
             >
-              RP 50.000<small
-                class="font-sans text-base font-normal text-slate-500"
+              <span data-price="ps4">—</span
+              ><small class="font-sans text-base font-normal text-slate-500"
                 >/day</small
               >
             </p>
@@ -451,14 +457,14 @@
             <div class="flex justify-between text-[15px]">
               <strong class="font-semibold text-black">PS5</strong
               ><span data-stock="ps5" class="text-yellow-600"
-                >Available: 2</span
+                >Loading availability…</span
               >
             </div>
             <p
               class="mb-[18px] mt-9 font-display text-[32px] font-bold text-black"
             >
-              RP 200.000<small
-                class="font-sans text-base font-normal text-slate-500"
+              <span data-price="ps5">—</span
+              ><small class="font-sans text-base font-normal text-slate-500"
                 >/day</small
               >
             </p>

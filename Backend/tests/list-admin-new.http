@@ -1,0 +1,230 @@
+@baseUrl = http://localhost/playstation/backend/public/api
+
+@adminUsername = admin
+@adminPassword = admin12345
+
+@bookingCode = A43125F1
+@expectedTotal = 200000
+
+
+### 1. Login admin
+POST {{baseUrl}}/admin/login.php
+Content-Type: application/json
+
+{
+  "username": "{{adminUsername}}",
+  "password": "{{adminPassword}}"
+}
+
+> {%
+    client.test("Login admin berhasil", function () {
+        client.assert(response.status === 200, "Harus HTTP 200");
+        client.assert(response.body.success === true, "Login harus berhasil");
+    });
+%}
+
+
+### 2. Daftar booking dan format respons
+GET {{baseUrl}}/admin/bookings/list.php?page=1&per_page=5
+
+> {%
+    client.test("Daftar booking sesuai format", function () {
+        client.assert(response.status === 200, "Harus HTTP 200");
+
+        const body = response.body;
+
+        client.assert(Array.isArray(body.data), "data harus array");
+        client.assert(body.meta.page === 1, "Halaman harus 1");
+        client.assert(body.meta.per_page === 5, "Ukuran halaman harus 5");
+        client.assert(Number.isInteger(body.meta.total), "Total harus integer");
+        client.assert(body.data.length <= 5, "Maksimal lima booking");
+
+        const paymentStatuses = [
+            "Pending", "AwaitingVerification", "Paid",
+            "Expired", "Rejected", "Cancelled"
+        ];
+
+        body.data.forEach(function (booking) {
+            client.assert(
+                Number.isInteger(booking.booking_id),
+                "ID booking harus integer"
+            );
+            client.assert(
+                typeof booking.total_cost === "number",
+                "Total biaya harus number"
+            );
+            client.assert(
+                paymentStatuses.includes(booking.payment_status),
+                "Status pembayaran tidak valid"
+            );
+            client.assert(
+                /[+-]\d{2}:\d{2}$/.test(booking.created_at),
+                "Tanggal harus menyertakan zona waktu"
+            );
+
+            const counts = booking.status_count;
+            const totalItems = counts.Booked + counts.Rented
+                + counts.Overdue + counts.Returned + counts.Cancelled;
+
+            Object.values(counts).forEach(function (count) {
+                client.assert(
+                    Number.isInteger(count) && count >= 0,
+                    "Jumlah status harus integer nonnegatif"
+                );
+            });
+
+            client.assert(
+                totalItems === booking.items_count,
+                "Jumlah seluruh status harus sama dengan jumlah item"
+            );
+
+            if (booking.payment_expires_at === null) {
+                client.assert(
+                    booking.seconds_left === null,
+                    "Tanpa deadline harus tanpa countdown"
+                );
+            } else {
+                client.assert(
+                    /[+-]\d{2}:\d{2}$/.test(booking.payment_expires_at),
+                    "Deadline harus menyertakan zona waktu"
+                );
+                client.assert(
+                    Number.isInteger(booking.seconds_left)
+                    && booking.seconds_left >= 0,
+                    "Countdown harus integer nonnegatif"
+                );
+
+                if (booking.payment_status !== "Pending") {
+                    client.assert(
+                        booking.seconds_left === 0,
+                        "Countdown pembayaran selain Pending harus nol"
+                    );
+                }
+            }
+        });
+    });
+%}
+
+
+### 3. Cari booking paket yang sebelumnya dibuat
+GET {{baseUrl}}/admin/bookings/list.php?search={{bookingCode}}
+
+> {%
+    client.test("Pencarian booking dan total biaya", function () {
+        client.assert(response.status === 200, "Harus HTTP 200");
+
+        const body = response.body;
+
+        client.assert(body.meta.total === 1, "Harus menemukan satu booking");
+        client.assert(body.data.length === 1, "Harus mengembalikan satu booking");
+
+        const booking = body.data[0];
+
+        client.assert(
+            booking.booking_code === "{{bookingCode}}",
+            "Kode booking tidak sesuai"
+        );
+        client.assert(
+            booking.total_cost === Number("{{expectedTotal}}"),
+            "Total biaya tidak sesuai"
+        );
+        client.assert(booking.payment_method === "Cash", "Metode harus Cash");
+        client.assert(booking.payment_status === "Pending", "Status harus Pending");
+        client.assert(booking.payment_expires_at === null, "Cash tanpa deadline");
+        client.assert(booking.seconds_left === null, "Cash tanpa countdown");
+    });
+%}
+
+
+### 4. Gabungan filter status rental dan pembayaran
+GET {{baseUrl}}/admin/bookings/list.php?search={{bookingCode}}&status=Booked&payment_status=Pending&payment_verified=false
+
+> {%
+    client.test("Gabungan filter berhasil", function () {
+        client.assert(response.status === 200, "Harus HTTP 200");
+        client.assert(response.body.data.length === 1, "Harus menemukan booking");
+
+        const booking = response.body.data[0];
+
+        client.assert(
+            booking.booking_code === "{{bookingCode}}",
+            "Kode booking tidak sesuai"
+        );
+        client.assert(booking.status_count.Booked > 0, "Harus memiliki item Booked");
+        client.assert(booking.payment_status === "Pending", "Harus Pending");
+        client.assert(booking.payment_verified === false, "Belum diverifikasi");
+    });
+%}
+
+
+### 5. Status Cancelled diterima sebagai filter
+GET {{baseUrl}}/admin/bookings/list.php?status=Cancelled
+
+> {%
+    client.test("Filter Cancelled diterima", function () {
+        client.assert(response.status === 200, "Harus HTTP 200");
+
+        response.body.data.forEach(function (booking) {
+            client.assert(
+                booking.status_count.Cancelled > 0,
+                "Setiap booking harus memiliki item Cancelled"
+            );
+        });
+    });
+%}
+
+
+### 6. Status pembayaran tidak valid ditolak
+GET {{baseUrl}}/admin/bookings/list.php?payment_status=InvalidStatus
+
+> {%
+    client.test("Tolak status pembayaran tidak valid", function () {
+        client.assert(response.status === 422, "Harus HTTP 422");
+        client.assert(response.body.code === "VALIDATION_ERROR", "Kode tidak sesuai");
+    });
+%}
+
+
+### 7. Ukuran halaman melebihi batas ditolak
+GET {{baseUrl}}/admin/bookings/list.php?per_page=101
+
+> {%
+    client.test("Tolak ukuran halaman melebihi batas", function () {
+        client.assert(response.status === 422, "Harus HTTP 422");
+    });
+%}
+
+
+### 8. Method POST ditolak
+POST {{baseUrl}}/admin/bookings/list.php
+Content-Type: application/json
+
+{}
+
+> {%
+    client.test("Tolak method POST", function () {
+        client.assert(response.status === 405, "Harus HTTP 405");
+        client.assert(response.body.code === "METHOD_NOT_ALLOWED", "Kode tidak sesuai");
+    });
+%}
+
+
+### 9. Logout admin
+POST {{baseUrl}}/admin/logout.php
+
+> {%
+    client.test("Logout berhasil", function () {
+        client.assert(response.status === 200, "Harus HTTP 200");
+    });
+%}
+
+
+### 10. Akses tanpa sesi ditolak
+GET {{baseUrl}}/admin/bookings/list.php
+
+> {%
+    client.test("Daftar booking wajib login", function () {
+        client.assert(response.status === 401, "Harus HTTP 401");
+        client.assert(response.body.code === "UNAUTHORIZED", "Kode tidak sesuai");
+    });
+%}

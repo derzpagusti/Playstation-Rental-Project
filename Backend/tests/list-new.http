@@ -1,0 +1,107 @@
+@baseUrl = http://localhost/playstation/backend/public/api
+
+
+### 1. Daftar device dan tipe data respons
+GET {{baseUrl}}/devices/list.php
+
+> {%
+    client.global.clear("dailyListDeviceId");
+    client.global.clear("dailyListDevicePrice");
+
+    client.test("Daftar device memiliki format yang benar", function () {
+        client.assert(response.status === 200, "Harus HTTP 200");
+        client.assert(response.body.success === true, "Request harus berhasil");
+        client.assert(Array.isArray(response.body.data), "data harus array");
+
+        const devices = response.body.data;
+
+        client.assert(devices.length > 0, "Seeder device harus sudah dijalankan");
+
+        devices.forEach(function (device) {
+            client.assert(
+                Number.isInteger(device.device_id),
+                "device_id harus integer"
+            );
+            client.assert(
+                ["PS4", "PS5"].includes(device.category),
+                "Kategori harus PS4 atau PS5"
+            );
+            client.assert(
+                typeof device.price_per_day === "number"
+                && device.price_per_day > 0,
+                "Tarif harian harus angka positif"
+            );
+            client.assert(
+                typeof device.is_rented === "boolean",
+                "is_rented harus boolean"
+            );
+            client.assert(
+                !Object.prototype.hasOwnProperty.call(device, "price_per_hour"),
+                "Harga per jam tidak boleh muncul"
+            );
+
+            if (device.is_rented) {
+                client.assert(
+                    typeof device.end_time === "string",
+                    "Unit yang sedang dipakai harus memiliki end_time"
+                );
+                client.assert(
+                    /[+-]\d{2}:\d{2}$/.test(device.end_time),
+                    "end_time harus menyertakan zona waktu"
+                );
+                client.assert(
+                    !Number.isNaN(Date.parse(device.end_time)),
+                    "end_time harus bisa dibaca sebagai tanggal"
+                );
+            } else {
+                client.assert(
+                    device.end_time === null,
+                    "Unit tanpa rental aktif harus memiliki end_time null"
+                );
+            }
+        });
+
+        client.global.set("dailyListDeviceId", devices[0].device_id);
+        client.global.set("dailyListDevicePrice", devices[0].price_per_day);
+    });
+%}
+
+
+### 2. Harga daftar harus sama dengan detail pricing
+GET {{baseUrl}}/devices/pricing.php?device_id={{dailyListDeviceId}}
+
+> {%
+    client.test("Tarif daftar dan detail konsisten", function () {
+        client.assert(response.status === 200, "Harus HTTP 200");
+
+        const expectedId = Number(client.global.get("dailyListDeviceId"));
+        const expectedPrice = Number(client.global.get("dailyListDevicePrice"));
+        const device = response.body.data;
+
+        client.assert(
+            device.device_id === expectedId,
+            "ID device harus sama"
+        );
+        client.assert(
+            device.price_per_day === expectedPrice,
+            "Harga daftar dan detail harus sama"
+        );
+    });
+%}
+
+
+### 3. Method POST ditolak
+POST {{baseUrl}}/devices/list.php
+Content-Type: application/json
+
+{}
+
+> {%
+    client.test("Tolak method POST", function () {
+        client.assert(response.status === 405, "Harus HTTP 405");
+        client.assert(
+            response.body.code === "METHOD_NOT_ALLOWED",
+            "Kode error tidak sesuai"
+        );
+    });
+%}

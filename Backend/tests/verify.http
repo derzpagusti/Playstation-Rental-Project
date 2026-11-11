@@ -1,0 +1,64 @@
+@baseUrl = http://localhost/playstation/backend/public/api
+
+### 1. Uji Tanpa Login -> 401 UNAUTHORIZED
+POST {{baseUrl}}/admin/logout.php
+
+###
+POST {{baseUrl}}/admin/bookings/verify.php
+Content-Type: application/json
+
+{ "booking_id": 5 }
+
+### 2. Login sebagai Admin
+POST {{baseUrl}}/admin/login.php
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "admin12345"
+}
+
+### 3. Uji DEMO0004 (booking_id=4, QRIS tanpa bukti bayar) -> 409 PAYMENT_PROOF_REQUIRED
+POST {{baseUrl}}/admin/bookings/verify.php
+Content-Type: application/json
+
+{ "booking_id": 4 }
+
+### 4. Uji DEMO0005 (booking_id=5, Cash) -> 200 OK
+# staff_id diisi user_id admin kasir, payment_verified_at terisi, rental Rented
+POST {{baseUrl}}/admin/bookings/verify.php
+Content-Type: application/json
+
+{
+  "booking_id": 5,
+  "staff_id": 999
+}
+
+### 5. Uji Verifikasi Ulang DEMO0005 -> 409 INVALID_STATUS_TRANSITION
+POST {{baseUrl}}/admin/bookings/verify.php
+Content-Type: application/json
+
+{ "booking_id": 5 }
+
+### 6. Uji booking_id tidak ditemukan (999) -> 404 NOT_FOUND
+POST {{baseUrl}}/admin/bookings/verify.php
+Content-Type: application/json
+
+{ "booking_id": 999 }
+
+### 7. Uji booking_id tidak valid -> 422 VALIDATION_ERROR
+POST {{baseUrl}}/admin/bookings/verify.php
+Content-Type: application/json
+
+{ "booking_id": "abc" }
+
+### 8. Uji Metode Salah (GET) -> 405 METHOD_NOT_ALLOWED
+GET {{baseUrl}}/admin/bookings/verify.php
+
+### 9. Simulasi Bukti Bayar untuk DEMO0004 lalu Verifikasi -> 200 OK
+# Jalankan ini di Database Console SQL:
+# UPDATE booking SET payment_proof_url = 'payment_proof/test.jpg' WHERE booking_code = 'DEMO0004';
+POST {{baseUrl}}/admin/bookings/verify.php
+Content-Type: application/json
+
+{ "booking_id": 4 }
