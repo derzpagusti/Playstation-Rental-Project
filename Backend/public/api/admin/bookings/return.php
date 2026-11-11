@@ -19,8 +19,14 @@ $rentalId = filter_var($input['rental_id'] ?? null, FILTER_VALIDATE_INT, [
     'options' => ['min_range' => 1]
 ]);
 
-if ($rentalId === false) {
-    json_error('VALIDATION_ERROR', 'rental_id harus berupa bilangan bulat minimal 1', 422);
+$rentalId = $input['rental_id'] ?? null;
+
+if (!is_int($rentalId) || $rentalId < 1) {
+    json_error(
+        'VALIDATION_ERROR',
+        'rental_id harus berupa bilangan bulat minimal 1',
+        422
+    );
 }
 
 // 5. Validasi condition_at_return (opsional, string, maks 100 karakter)
@@ -49,14 +55,30 @@ if (array_key_exists('condition_notes', $input) && $input['condition_notes'] !==
     $conditionNotes = $trimmedNotes !== '' ? $trimmedNotes : null;
 }
 
-// 7. Perbarui status keterlambatan sebelum transaksi dimulai
-mark_overdue($pdo);
-
 // 8. Transaksi Database
 try {
+    expire_unpaid_bookings($pdo);
+    mark_overdue($pdo);
+
     $pdo->beginTransaction();
 
-    // a. Ambil baris rental dan kunci dengan FOR UPDATE OF r
+    // Kunci booking terlebih dahulu agar pengembalian antar-item
+    // pada booking yang sama diproses bergantian.
+    $stmtBooking = $pdo->prepare(
+        'SELECT b.booking_id
+         FROM booking b
+         JOIN rental r ON r.booking_id = b.booking_id
+         WHERE r.rental_id = :rental_id
+         FOR UPDATE OF b'
+    );
+    $stmtBooking->execute(['rental_id' => $rentalId]);
+
+    if ($stmtBooking->fetchColumn() === false) {
+        $pdo->rollBack();
+
+        json_error('NOT_FOUND', 'Item rental tidak ditemukan', 404);
+    }
+
     $stmtRental = $pdo->prepare(
         "SELECT r.rental_id, r.booking_id, r.device_id, r.rental_status, b.booking_code
          FROM rental r
@@ -73,25 +95,29 @@ try {
     }
 
     // b. Validasi transisi status
-    if ($rental['rental_status'] === 'Booked') {
+    if (!in_array($rental['rental_status'], ['Rented', 'Overdue'], true)) {
         $pdo->rollBack();
-        json_error('INVALID_STATUS_TRANSITION', 'Pesanan belum diverifikasi', 409);
-    }
 
-    if ($rental['rental_status'] === 'Returned') {
-        $pdo->rollBack();
-        json_error('INVALID_STATUS_TRANSITION', 'Item rental sudah dikembalikan', 409);
+        json_error(
+            'INVALID_STATUS_TRANSITION',
+            'Hanya rental berstatus Rented atau Overdue yang dapat dikembalikan',
+            409
+        );
     }
 
     // c. Update rental menjadi Returned (COALESCE menjaga nilai jika parameter null)
     $stmtUpdate = $pdo->prepare(
         "UPDATE rental
-         SET rental_status       = 'Returned',
-             returned_at         = now(),
-             condition_at_return = COALESCE(:cond, condition_at_return),
-             condition_notes     = COALESCE(:notes, condition_notes)
-         WHERE rental_id = :rental_id
-         RETURNING to_char(returned_at, 'YYYY-MM-DD\"T\"HH24:MI:SS') AS returned_at"
+     SET rental_status = 'Returned',
+         returned_at = clock_timestamp(),
+         condition_at_return = COALESCE(:cond, condition_at_return),
+         condition_notes = COALESCE(:notes, condition_notes)
+     WHERE rental_id = :rental_id
+       AND rental_status IN ('Rented', 'Overdue')
+     RETURNING to_char(
+         returned_at,
+         'YYYY-MM-DD\"T\"HH24:MI:SSTZH:TZM'
+     ) AS returned_at"
     );
     $stmtUpdate->execute([
         'cond' => $conditionAtReturn,
@@ -99,6 +125,10 @@ try {
         'rental_id' => $rentalId,
     ]);
     $returnedAt = $stmtUpdate->fetchColumn();
+
+    if ($returnedAt === false) {
+        throw new RuntimeException('Status pengembalian gagal diperbarui');
+    }
 
     // d. Periksa apakah seluruh konsol pada booking ini sudah dikembalikan
     $stmtCount = $pdo->prepare(
@@ -126,7 +156,7 @@ try {
         ],
     ]);
 
-} catch (PDOException $e) {
+} catch (Throwable $e) {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }
