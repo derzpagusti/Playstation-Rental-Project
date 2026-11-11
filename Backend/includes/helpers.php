@@ -23,12 +23,12 @@ function normalize_phone(string $phone): string
 
 function lock_device(PDO $pdo, int $deviceId): array|false
 {
-    $stmt = $pdo->prepare('SELECT device_id, price_per_hour, status 
+    $query = $pdo->prepare('SELECT device_id, price_per_day, status 
                            FROM device 
-                           WHERE device_id = ? 
+                           WHERE device_id = :device_id 
                            FOR UPDATE');
-    $stmt->execute([$deviceId]);
-    return $stmt->fetch();
+    $query->execute(['device_id' => $deviceId]);
+    return $query->fetch();
 }
 
 function device_is_held(PDO $pdo, int $deviceId): bool
