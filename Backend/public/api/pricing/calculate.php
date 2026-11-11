@@ -4,90 +4,122 @@ require __DIR__ . '/../../../includes/bootstrap.php';
 /** @var PDO $pdo */
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    json_error('METHOD_NOT_ALLOWED', 'Method HTTP tidak diizinkan. Gunakan method POST', 405);
+    json_error('METHOD_NOT_ALLOWED', 'Gunakan method POST', 405);
 }
 
 $input = read_json_body();
 
-$device_id = $input['device_id'] ?? null;
-$duration_hours = $input['duration_hours'] ?? null;
-$package_id = $input['package_id'] ?? null;
+$deviceId = $input['device_id'] ?? null;
+$durationDays = $input['duration_days'] ?? null;
+$packageId = $input['package_id'] ?? null;
 
-if (!filter_var($device_id, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]])) {
-    json_error('VALIDATION_ERROR', 'device_id harus berupa angka lebih dari 0', 422);
+if (!is_int($deviceId) || $deviceId < 1) {
+    json_error(
+        'VALIDATION_ERROR',
+        'device_id harus berupa bilangan bulat minimal 1',
+        422
+    );
 }
 
-$has_duration = ($duration_hours !== null);
-$has_package = ($package_id !== null);
-
-if ($has_duration) {
-    $duration_hours = filter_var($duration_hours, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 168]]);
-    if ($duration_hours === false) {
-        json_error('VALIDATION_ERROR', 'duration_hours harus berupa angka 1-168', 422);
-    }
+// Tolak format lama agar durasi per jam tidak digunakan tanpa sengaja.
+if (array_key_exists('duration_hours', $input)) {
+    json_error(
+        'VALIDATION_ERROR',
+        'Gunakan duration_days untuk durasi sewa harian',
+        422
+    );
 }
 
-if ($has_duration === $has_package) {
-    json_error('VALIDATION_ERROR', 'Pilih tepat salah satu: masukkan duration_hours ATAU package_id', 422);
+$hasDuration = $durationDays !== null;
+$hasPackage = $packageId !== null;
+
+if ($hasDuration === $hasPackage) {
+    json_error(
+        'VALIDATION_ERROR',
+        'Pilih tepat salah satu: duration_days atau package_id',
+        422
+    );
 }
 
-if ($has_duration && !filter_var($duration_hours, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]])) {
-    json_error('VALIDATION_ERROR', 'duration_hours harus berupa bilangan bulat minimal 1', 422);
-}
-if ($has_package && !filter_var($package_id, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]])) {
-    json_error('VALIDATION_ERROR', 'package_id harus berupa angka lebih dari 0', 422);
+if ($hasDuration
+    && (!is_int($durationDays) || $durationDays < 1 || $durationDays > 7)) {
+    json_error(
+        'VALIDATION_ERROR',
+        'duration_days harus berupa bilangan bulat antara 1 sampai 7',
+        422
+    );
 }
 
-$device_id = (int)$device_id;
+if ($hasPackage && (!is_int($packageId) || $packageId < 1)) {
+    json_error(
+        'VALIDATION_ERROR',
+        'package_id harus berupa bilangan bulat minimal 1',
+        422
+    );
+}
 
 try {
-    $stmtDevice = $pdo->prepare("SELECT device_id, price_per_hour
-                                       FROM device
-                                       WHERE device_id = :device_id");
-    $stmtDevice->execute(['device_id' => $device_id]);
-    $device = $stmtDevice->fetch();
+    $deviceQuery = $pdo->prepare(
+        'SELECT device_id, price_per_day
+         FROM device
+         WHERE device_id = :device_id'
+    );
+    $deviceQuery->execute(['device_id' => $deviceId]);
+    $device = $deviceQuery->fetch();
 
     if (!$device) {
         json_error('NOT_FOUND', 'Device tidak ditemukan', 404);
     }
 
-    if ($has_duration) {
-        // Mode durasi bebas: durasi x harga per jam
-        $duration = (int)$duration_hours;
-        $price_per_hour = (float)$device['price_per_hour'];
-        $total_cost = $duration * $price_per_hour;
-        $result_package_id = null;
+    if ($hasDuration) {
+        $pricePerDay = (float) $device['price_per_day'];
+        $durationHours = $durationDays * 24;
+        $totalCost = $durationDays * $pricePerDay;
     } else {
-        // Mode paket: harga tetap dari paket
-        $stmtPkg = $pdo->prepare("SELECT package_id, duration_hours, package_price
-                                        FROM rental_package
-                                        WHERE package_id = :package_id
-                                        AND device_id = :device_id
-                                        AND is_active = true");
-        $stmtPkg->execute(['package_id' => $package_id, 'device_id' => $device_id]);
-        $package = $stmtPkg->fetch();
+        $packageQuery = $pdo->prepare(
+            'SELECT duration_hours, package_price
+             FROM rental_package
+             WHERE package_id = :package_id
+               AND device_id = :device_id
+               AND is_active = TRUE'
+        );
+        $packageQuery->execute([
+            'package_id' => $packageId,
+            'device_id' => $deviceId,
+        ]);
+        $package = $packageQuery->fetch();
 
         if (!$package) {
-            json_error('NOT_FOUND', 'Paket tidak ditemukan atau tidak tersedia', 404);
+            json_error(
+                'NOT_FOUND',
+                'Paket tidak ditemukan atau tidak tersedia untuk device ini',
+                404
+            );
         }
 
-        $duration = (int)$package['duration_hours'];
-        $price_per_hour = null;
-        $total_cost = (float)$package['package_price'];
-        $result_package_id = (int)$package['package_id'];
+        $durationHours = (int) $package['duration_hours'];
+        $durationDays = intdiv($durationHours, 24);
+        $pricePerDay = null;
+        $totalCost = (float) $package['package_price'];
     }
 
     json_response([
         'success' => true,
         'data' => [
-            'device_id' => (int)$device['device_id'],
-            'duration_hours' => $duration,
-            'price_per_hour' => $price_per_hour,
-            'package_id' => $result_package_id,
-            'total_cost' => $total_cost
-        ]
+            'device_id' => $deviceId,
+            'duration_days' => $durationDays,
+            'duration_hours' => $durationHours,
+            'price_per_day' => $pricePerDay,
+            'package_id' => $packageId,
+            'total_cost' => $totalCost,
+        ],
     ]);
 } catch (PDOException $e) {
-    error_log("Price Calculation API Error: " . $e->getMessage());
-    json_error('SERVER_ERROR', 'Terjadi kesalahan internal pada server', 500);
+    error_log('Price Calculation API Error: ' . $e->getMessage());
+
+    json_error(
+        'SERVER_ERROR',
+        'Terjadi kesalahan internal pada server',
+        500
+    );
 }
