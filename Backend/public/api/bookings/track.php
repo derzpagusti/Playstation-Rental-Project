@@ -43,7 +43,7 @@ try {
         "SELECT b.booking_code,
                 to_char(
                     b.created_at,
-                    'YYYY-MM-DD\"T\"HH24:MI:SS'
+                    'YYYY-MM-DD\"T\"HH24:MI:SSTZH:TZM'
                 ) AS created_at,
                 b.payment_method,
                 b.payment_status,
@@ -68,27 +68,29 @@ try {
                 d.device_name,
                 to_char(
                     r.start_time,
-                    'YYYY-MM-DD\"T\"HH24:MI:SS'
+                    'YYYY-MM-DD\"T\"HH24:MI:SSTZH:TZM'
                 ) AS start_time,
                 to_char(
                     r.end_time,
-                    'YYYY-MM-DD\"T\"HH24:MI:SS'
+                    'YYYY-MM-DD\"T\"HH24:MI:SSTZH:TZM'
                 ) AS end_time,
+                r.package_id,
                 r.duration_hours,
+                r.price_per_day,
                 r.extra_hours,
                 r.total_cost,
                 r.rental_status,
                 to_char(
                     r.rented_at,
-                    'YYYY-MM-DD\"T\"HH24:MI:SS'
+                    'YYYY-MM-DD\"T\"HH24:MI:SSTZH:TZM'
                 ) AS rented_at,
                 to_char(
                     r.overdue_at,
-                    'YYYY-MM-DD\"T\"HH24:MI:SS'
+                    'YYYY-MM-DD\"T\"HH24:MI:SSTZH:TZM'
                 ) AS overdue_at,
                 to_char(
                     r.returned_at,
-                    'YYYY-MM-DD\"T\"HH24:MI:SS'
+                    'YYYY-MM-DD\"T\"HH24:MI:SSTZH:TZM'
                 ) AS returned_at
          FROM booking b
          JOIN users u ON u.user_id = b.customer_id
@@ -117,19 +119,29 @@ try {
     $grandTotal = 0.0;
 
     foreach ($rows as $row) {
+        $durationHours = (int) $row['duration_hours'];
         $itemCost = (float) $row['total_cost'];
+
         $grandTotal += $itemCost;
 
         $items[] = [
             'device_id' => (int) $row['device_id'],
             'device_name' => $row['device_name'],
+            'package_id' => $row['package_id'] !== null
+                ? (int) $row['package_id']
+                : null,
             'start_time' => $row['start_time'],
             'end_time' => $row['end_time'],
-            'duration_hours' => (int) $row['duration_hours'],
+            'duration_days' => intdiv($durationHours, 24),
+            'duration_hours' => $durationHours,
+            'price_per_day' => $row['price_per_day'] !== null
+                ? (float) $row['price_per_day']
+                : null,
             'extra_hours' => (int) $row['extra_hours'],
+            'extra_cost' => (float) $row['extra_cost'],
             'total_cost' => $itemCost,
             'rental_status' => $row['rental_status'],
-            'timeline' => build_timeline($row)
+            'timeline' => build_timeline($row),
         ];
     }
 
