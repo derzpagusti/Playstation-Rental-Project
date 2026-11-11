@@ -13,7 +13,7 @@ if (!filter_var($device_id, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1
 }
 
 try {
-    $sqlDevice = "SELECT device_id, device_name, category, booth_code, status, price_per_hour
+    $sqlDevice = "SELECT device_id, device_name, category, booth_code, status, price_per_day
                   FROM device WHERE device_id = :device_id";
     $stmtDevice = $pdo->prepare($sqlDevice);
     $stmtDevice->execute(['device_id' => $device_id]);
@@ -31,7 +31,7 @@ try {
     $stmtPackage->execute(['device_id' => $device_id]);
     $packages = $stmtPackage->fetchAll();
 
-    $device['price_per_hour'] = (float) $device['price_per_hour'];
+    $device['price_per_day'] = (float) $device['price_per_day'];
 
     foreach ($packages as $pkg) {
         $pkg['package_id'] = (int) $pkg['package_id'];
@@ -45,10 +45,18 @@ try {
 
     json_response([
         'success' => true,
-        'data' => $device
+        'data' => [
+            'device_id' => (int) $device['device_id'],
+            'device_name' => $device['device_name'],
+            'category' => $device['category'],
+            'booth_code' => $device['booth_code'],
+            'status' => $device['status'],
+            'price_per_day' => (float) $device['price_per_day'],
+            'packages' => $packages,
+        ],
     ]);
 
 } catch (PDOException $e) {
-    error_log("Device Detail API Error: " . $e->getMessage());
-    json_error('SERVER_ERROR', 'Terjadi kesalahan internal pada server', 500);
+    error_log('Device Pricing API Error: ' . $e->getMessage());
+    json_error('INTERNAL_SERVER_ERROR', 'Terjadi kesalahan pada server', 500);
 }
