@@ -65,49 +65,69 @@ $deviceIds = [];
 
 foreach ($rawItems as $index => $item) {
     if (!is_array($item) || array_is_list($item)) {
-        json_error('VALIDATION_ERROR', "Item pada indeks ke-{$index} harus berupa objek", 422);
+        json_error(
+            'VALIDATION_ERROR',
+            "Item pada indeks ke-{$index} harus berupa objek",
+            422
+        );
     }
 
-    $deviceId = filter_var($item['device_id'] ?? null, FILTER_VALIDATE_INT, [
-        'options' => ['min_range' => 1]
-    ]);
-    if ($deviceId === false) {
-        json_error('VALIDATION_ERROR', 'device_id pada setiap item harus berupa bilangan bulat minimal 1', 422);
+    $deviceId = $item['device_id'] ?? null;
+
+    if (!is_int($deviceId) || $deviceId < 1) {
+        json_error(
+            'VALIDATION_ERROR',
+            'device_id pada setiap item harus berupa bilangan bulat minimal 1',
+            422
+        );
+    }
+
+    if (array_key_exists('duration_hours', $item)) {
+        json_error(
+            'VALIDATION_ERROR',
+            'Gunakan duration_days untuk durasi sewa harian',
+            422
+        );
+    }
+
+    $durationDays = $item['duration_days'] ?? null;
+    $packageId = $item['package_id'] ?? null;
+
+    $hasDuration = $durationDays !== null;
+    $hasPackage = $packageId !== null;
+
+    if ($hasDuration === $hasPackage) {
+        json_error(
+            'VALIDATION_ERROR',
+            "Device ID {$deviceId} harus memilih tepat salah satu duration_days atau package_id",
+            422
+        );
+    }
+
+    if ($hasDuration
+        && (!is_int($durationDays) || $durationDays < 1 || $durationDays > 7)) {
+        json_error(
+            'VALIDATION_ERROR',
+            "duration_days untuk device ID {$deviceId} harus berupa bilangan bulat 1-7",
+            422
+        );
+    }
+
+    if ($hasPackage && (!is_int($packageId) || $packageId < 1)) {
+        json_error(
+            'VALIDATION_ERROR',
+            "package_id untuk device ID {$deviceId} harus berupa bilangan bulat minimal 1",
+            422
+        );
     }
 
     $deviceIds[] = $deviceId;
 
-    // Cek apakah item memiliki duration_hours atau package_id (tepat salah satu)
-    $hasDuration = array_key_exists('duration_hours', $item) && $item['duration_hours'] !== null;
-    $hasPackage = array_key_exists('package_id', $item) && $item['package_id'] !== null;
-
-    if ($hasDuration === $hasPackage) {
-        json_error('VALIDATION_ERROR', "Item dengan ID {$deviceId} harus memilih tepat salah satu duration_hours atau package_id", 422);
-    }
-
-    $cleanItem = ['device_id' => $deviceId];
-
-    if ($hasDuration) {
-        $durationHours = filter_var($item['duration_hours'], FILTER_VALIDATE_INT, [
-            'options' => ['min_range' => 1, 'max_range' => 168]
-        ]);
-        if ($durationHours === false) {
-            json_error('VALIDATION_ERROR', "duration_hours untuk device ID {$deviceId} harus berupa bilangan bulat 1-168", 422);
-        }
-        $cleanItem['duration_hours'] = $durationHours;
-        $cleanItem['package_id'] = null;
-    } else {
-        $packageId = filter_var($item['package_id'], FILTER_VALIDATE_INT, [
-            'options' => ['min_range' => 1]
-        ]);
-        if ($packageId === false) {
-            json_error('VALIDATION_ERROR', "package_id untuk device ID {$deviceId} harus berupa angka bulat minimal 1", 422);
-        }
-        $cleanItem['package_id'] = $packageId;
-        $cleanItem['duration_hours'] = null;
-    }
-
-    $validatedItems[] = $cleanItem;
+    $validatedItems[] = [
+        'device_id' => $deviceId,
+        'duration_days' => $durationDays,
+        'package_id' => $packageId,
+    ];
 }
 
 // Cek device_id ganda
@@ -209,13 +229,20 @@ try {
                                        AND device_id = :device_id 
                                        AND is_active = true");
 
-    $stmtInsertRental = $pdo->prepare("INSERT INTO rental (
-                                           booking_id, device_id, package_id, start_time, 
-                                           duration_hours, end_time, price_per_hour, total_cost
-                                       ) VALUES (
-                                           :booking_id, :device_id, :package_id, :start_time, 
-                                           :duration_hours, :end_time, :price_per_hour, :total_cost
-                                       ) RETURNING rental_status");
+    $stmtInsertRental = $pdo->prepare(
+        'INSERT INTO rental (booking_id, device_id, package_id, start_time, duration_hours, end_time, price_per_day, total_cost) 
+               VALUES (
+                        :booking_id,
+                        :device_id,
+                        :package_id,
+                        :start_time,
+                        :duration_hours,
+                        :end_time,
+                        :price_per_day,
+                        :total_cost
+     )
+     RETURNING rental_status'
+    );
 
     $responseItems = [];
     $grandTotal = 0;
@@ -244,29 +271,33 @@ try {
 
         // 4) Hitung durasi, harga, dan end_time terlebih dahulu sebelum cek slot_is_free()
         if ($item['package_id'] === null) {
-            $itemDuration = $item['duration_hours'];
-            $pricePerHour = (float) $device['price_per_hour'];
-            $itemTotal = $itemDuration * $pricePerHour;
+            $durationDays = $item['duration_days'];
+            $itemDuration = $durationDays * 24;
+            $pricePerDay = (float) $device['price_per_day'];
+            $itemTotal = $durationDays * $pricePerDay;
             $packageId = null;
-            $resPrice = $pricePerHour;
         } else {
-            $pkgId = $item['package_id'];
             $stmtGetPackage->execute([
-                'package_id' => $pkgId,
-                'device_id'  => $devId
+                'package_id' => $item['package_id'],
+                'device_id' => $devId,
             ]);
             $package = $stmtGetPackage->fetch();
 
             if (!$package) {
                 $pdo->rollBack();
-                json_error('NOT_FOUND', "Paket dengan ID {$pkgId} tidak ditemukan", 404);
+
+                json_error(
+                    'NOT_FOUND',
+                    'Paket tidak ditemukan atau tidak tersedia untuk device ini',
+                    404
+                );
             }
 
             $itemDuration = (int) $package['duration_hours'];
+            $durationDays = intdiv($itemDuration, 24);
             $itemTotal = (float) $package['package_price'];
             $packageId = (int) $package['package_id'];
-            $pricePerHour = null;
-            $resPrice = null;
+            $pricePerDay = null;
         }
 
         $itemEndDt = $startDt->modify("+{$itemDuration} hours");
@@ -280,27 +311,29 @@ try {
 
         // 6) Insert baris rental
         $stmtInsertRental->execute([
-            'booking_id'     => $bookingId,
-            'device_id'      => $devId,
-            'package_id'     => $packageId,
-            'start_time'     => $startTimedb,
+            'booking_id' => $bookingId,
+            'device_id' => $devId,
+            'package_id' => $packageId,
+            'start_time' => $startTimedb,
             'duration_hours' => $itemDuration,
-            'end_time'       => $itemEndTimeDb,
-            'price_per_hour' => $pricePerHour,
-            'total_cost'     => $itemTotal
+            'end_time' => $itemEndTimeDb,
+            'price_per_day' => $pricePerDay,
+            'total_cost' => $itemTotal,
         ]);
+
         $rentalStatus = $stmtInsertRental->fetchColumn();
 
         $grandTotal += $itemTotal;
 
         $responseItems[] = [
-            'device_id'      => $devId,
-            'package_id'     => $packageId,
+            'device_id' => $devId,
+            'package_id' => $packageId,
+            'duration_days' => $durationDays,
             'duration_hours' => $itemDuration,
-            'price_per_hour' => $resPrice,
-            'end_time'       => $itemEndDt->format('Y-m-d\TH:i:s'),
-            'total_cost'     => $itemTotal,
-            'rental_status'  => $rentalStatus
+            'price_per_day' => $pricePerDay,
+            'end_time' => $itemEndDt->format('Y-m-d\TH:i:sP'),
+            'total_cost' => $itemTotal,
+            'rental_status' => $rentalStatus,
         ];
     }
 
@@ -341,7 +374,7 @@ try {
         'success' => true,
         'data' => [
             'booking_code'   => $bookingCode,
-            'start_time'     => $startDt->format('Y-m-d\TH:i:s'),
+            'start_time' => $startDt->format('Y-m-d\TH:i:sP'),
             'payment_method' => $paymentMethod,
             'total_cost'     => $grandTotal,
             'items'          => $responseItems,

@@ -36,6 +36,7 @@ try {
     foreach ($packages as $pkg) {
         $pkg['package_id'] = (int) $pkg['package_id'];
         $pkg['duration_hours'] = (int) $pkg['duration_hours'];
+        $pkg['duration_days'] = (int) $pkg['duration_days'];
         $pkg['package_price'] = (float) $pkg['package_price'];
     }
 
