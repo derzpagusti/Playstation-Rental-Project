@@ -9,7 +9,7 @@ CREATE TABLE booking
     notes               VARCHAR(255),
     cancel_reason       VARCHAR(255),
     cancelled_at        TIMESTAMPTZ,
-    address_snapshot VARCHAR(255)
+    address_snapshot VARCHAR(255) NOT NULL
 );
 
 CREATE INDEX idx_booking_customer ON booking (customer_id);

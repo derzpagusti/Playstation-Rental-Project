@@ -10,7 +10,7 @@ CREATE TABLE payment (
         'Rejected',
         'Cancelled'
         )),
-    payment_expired_at TIMESTAMPTZ,
+    payment_expires_at TIMESTAMPTZ,
     payment_proof_url VARCHAR(255),
     payment_verified_at TIMESTAMPTZ,
     paid_at TIMESTAMPTZ,

@@ -1,1 +1,1 @@
-DROP TABLE IF EXISTS users, device, rental_package, booking, rental CASCADE;
+DROP TABLE IF EXISTS users, device, booking, rental, payment CASCADE;
