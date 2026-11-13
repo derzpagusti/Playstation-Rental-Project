@@ -8,7 +8,7 @@ CREATE TABLE users
     username              VARCHAR(50) UNIQUE,
     address               VARCHAR(255),
     password_hash         VARCHAR(255),
-    identity_doc_type     VARCHAR(20) CHECK (identity_doc_type IN ('Kartu Pelajar', 'KTP', 'SIM')),
+    identity_doc_type     VARCHAR(20) CHECK (identity_doc_type IN ('Kartu Pelajar', 'KTP', 'SIM', 'KTM')),
     identity_doc_url      VARCHAR(255),
     identity_doc_verified BOOLEAN      NOT NULL DEFAULT FALSE,
 
