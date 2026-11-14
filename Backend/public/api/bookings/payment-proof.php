@@ -6,13 +6,20 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     json_error('METHOD_NOT_ALLOWED', 'Gunakan method POST', 405);
 }
 
-$rawCode = $_POST['booking_code'] ?? null;
-$rawPhone = $_POST['phone'] ?? null;
-$bookingCode = is_string($rawCode) ? strtoupper(trim($rawCode)) : '';
-$phone = is_string($rawPhone) ? normalize_phone($rawPhone) : '';
+$auth = require_login(['customer']);
 
-if (!preg_match('/^[A-Z0-9]{8}$/', $bookingCode) || !preg_match('/^08\d{8,13}$/', $phone)) {
-    json_error('VALIDATION_ERROR', 'Kode booking atau format nomor HP tidak valid', 422);
+$customerId = filter_var($auth['user_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+
+if ($customerId === false || $customerId === null) {
+    json_error('UNAUTHORIZED', 'Sesi pelanggan tidak valid', 401);
+}
+
+$rawCode = $_POST['booking_code'] ?? null;
+
+$bookingCode = is_string($rawCode) ? strtoupper(trim($rawCode)) : '';
+
+if (!preg_match('/^[A-Z0-9]{8}$/', $bookingCode)) {
+    json_error('VALIDATION_ERROR', 'Kode booking harus berisi 8 karakter alfanumerik', 422);
 }
 
 $proof = $_FILES['payment_proof'] ?? null;
@@ -52,35 +59,79 @@ try {
 
     $pdo->beginTransaction();
 
-    $booking = $pdo->prepare('SELECT b.booking_id 
-                              FROM booking b 
-                                  JOIN users u ON u.user_id = b.customer_id 
-                              WHERE b.booking_code = :booking_code AND u.phone = :phone FOR UPDATE OF b');
-    $booking->execute(['booking_code' => $bookingCode, 'phone' => $phone]);
-    $bookingId = $booking->fetchColumn();
 
-    if ($bookingId === false) {
-        $pdo->rollback();
-        json_error('NOT_FOUND', 'Periksa kembali kode booking dan nomor HP anda', 404);
+    $booking = $pdo->prepare(
+        "SELECT
+        b.booking_id,
+        p.payment_id,
+        p.payment_method,
+        p.payment_status,
+        p.payment_expires_at
+     FROM booking b
+     JOIN payment p
+        ON p.booking_id = b.booking_id
+     WHERE b.booking_code = :booking_code
+       AND b.customer_id = :customer_id
+     FOR UPDATE OF b, p"
+    );
+
+    $booking->execute([
+        'booking_code' => $bookingCode,
+        'customer_id' => $customerId
+    ]);
+
+    $bookingData = $booking->fetch();
+
+    if (!$bookingData) {
+        $pdo->rollBack();
+
+        json_error(
+            'NOT_FOUND',
+            'Pesanan tidak ditemukan',
+            404
+        );
+    }
+
+    $bookingId = (int) $bookingData['booking_id'];
+
+    if ($bookingData['payment_method'] !== 'QRIS') {
+        $pdo->rollBack();
+        json_error('PAYMENT_PROOF_NOT_REQUIRED', 'Metode pembayaran ini tidak memerlukan bukti transfer', 409);
+    }
+
+    if ($bookingData['payment_status'] !== 'Pending') {
+        $pdo->rollBack();
+        json_error('INVALID_STATUS_TRANSITION', 'Pembayaran tidak lagi berstatus Pending', 409);
+    }
+
+    if ($bookingData['payment_expires_at'] === null) {
+        $pdo->rollBack();
+        json_error('INVALID_PAYMENT_DEADLINE', 'Batas waktu pembayaran QRIS tidak tersedia', 409);
     }
 
     $fileName = bin2hex(random_bytes(16)) . '.' . $extensions[$mime];
     $relativePath = 'payment_proof/' . $fileName;
 
+
     $update = $pdo->prepare(
-        "UPDATE booking
-         SET payment_proof_url = :proof_path,
-             payment_status = 'AwaitingVerification'
-         WHERE booking_id = :booking_id
-           AND payment_status = 'Pending'
-           AND payment_proof_url IS NULL
-           AND (payment_expires_at IS NULL OR payment_expires_at > clock_timestamp())"
+        "UPDATE payment
+     SET payment_proof_url = :proof_path,
+         payment_status = 'AwaitingVerification'
+     WHERE payment_id = :payment_id
+       AND payment_method = 'QRIS'
+       AND payment_status = 'Pending'
+       AND payment_proof_url IS NULL
+       AND payment_expires_at > clock_timestamp()"
     );
-    $update->execute(['booking_id' => $bookingId, 'proof_path' => $relativePath]);
+
+    $update->execute([
+        'payment_id' => (int) $bookingData['payment_id'],
+        'proof_path' => $relativePath
+    ]);
 
     if ($update->rowCount() !== 1) {
-        $pdo->rollback();
-        json_error('INVALID_STATUS_TRANSITION', 'Pesanan ini tidak dapat menerima bukti pembayaran', 409);
+        $pdo->rollBack();
+        json_error('INVALID_STATUS_TRANSITION', 'Pembayaran sudah diproses atau batas waktu upload telah berakhir', 409);
     }
 
     $uploadRoot = UPLOAD_DIR;
@@ -117,6 +168,8 @@ json_response([
     'success' => true,
     'data' => [
         'booking_code' => $bookingCode,
-        'payment_proof_uploaded' => true,
+        'payment_method' => 'QRIS',
+        'payment_status' => 'AwaitingVerification',
+        'payment_proof_uploaded' => true
     ],
 ]);

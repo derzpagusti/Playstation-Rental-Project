@@ -19,19 +19,9 @@ if ($customerId === false || $customerId === null) {
 $input = read_json_body();
 
 // c. Validasi start_time (Wajib, format YYYY-MM-DDTHH:MM:SS, maksimal 5 menit di masa lalu)
-$startTimeStr = $input['start_time'] ?? '';
-if (!is_string($startTimeStr)) {
-    json_error('VALIDATION_ERROR', 'start_time harus berupa teks', 422);
-}
-$startDt = DateTimeImmutable::createFromFormat('Y-m-d\TH:i:s', $startTimeStr);
-if ($startDt === false || $startDt->format('Y-m-d\TH:i:s') !== $startTimeStr) {
-    json_error('VALIDATION_ERROR', 'Format start_time tidak valid. Gunakan YYYY-MM-DDTHH:MM:SS', 422);
-}
+$timeZone = new DateTimeZone('Asia/Jakarta');
 
-$fiveMinutesAgo = (new DateTimeImmutable())->modify('-5 minutes');
-if ($startDt < $fiveMinutesAgo) {
-    json_error('VALIDATION_ERROR', 'Waktu mulai (start_time) tidak boleh lebih dari 5 menit di masa lalu', 422);
-}
+$startDt = new DateTimeImmutable('now', $timeZone);
 
 // d. Validasi payment_method (Salah satu dari QRIS, Transfer Bank, Cash)
 $paymentMethod = $input['payment_method'] ?? '';
