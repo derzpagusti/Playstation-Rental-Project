@@ -35,8 +35,11 @@ try {
             role,
             full_name,
             phone,
+            email,
             password_hash,
             address,
+            identity_doc_type,
+            identity_doc_url,
             identity_doc_verified
          FROM users
          WHERE phone = :phone
@@ -76,10 +79,12 @@ try {
     json_response([
         'success' => true,
         'data' => [
-            'user_id' => $authData['user_id'],
-            'full_name' => $authData['full_name'],
-            'role' => $authData['role'],
+            'user_id' => (int) $user['user_id'],
+            'full_name' => $user['full_name'],
+            'role' => 'customer',
             'phone' => $user['phone'],
+            'email' => $user['email'],
+            'address' => $user['address'],
             'profile_complete' => $profileComplete,
             'identity_doc_verified' => $identityVerified
         ]
