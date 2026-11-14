@@ -8,29 +8,15 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     json_error('METHOD_NOT_ALLOWED', 'Metode HTTP tidak diizinkan. Gunakan metode POST', 405);
 }
 
+$auth = require_login(['customer']);
+
+$customerId = filter_var($auth['user_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+
+if ($customerId === false || $customerId === null) {
+    json_error('UNAUTHORIZED', 'Sesi pelanggan tidak valid', 401);
+}
+
 $input = read_json_body();
-
-// 2. Validasi semua field input sebelum memasukkan ke database
-// a. Validasi full_name (Wajib, panjang 1-100 setelah trim)
-$rawName = $input['full_name'] ?? '';
-if (!is_string($rawName)) {
-    json_error('VALIDATION_ERROR', 'Nama lengkap harus berupa teks', 422);
-}
-$fullName = trim($rawName);
-$nameLen = mb_strlen($fullName);
-if ($nameLen < 1 || $nameLen > 100) {
-    json_error('VALIDATION_ERROR', 'Nama lengkap wajib diisi 1-100 karakter', 422);
-}
-
-// b. Validasi phone (Wajib, setelah normalize harus cocok ^08\d{8,13}$)
-$rawPhone = $input['phone'] ?? '';
-if (!is_string($rawPhone)) {
-    json_error('VALIDATION_ERROR', 'Nomor HP harus berupa teks', 422);
-}
-$phone = normalize_phone($rawPhone);
-if (!preg_match('/^08\d{8,13}$/', $phone)) {
-    json_error('VALIDATION_ERROR', 'Nomor HP tidak valid. Gunakan format 10-15 digit diawali 08', 422);
-}
 
 // c. Validasi start_time (Wajib, format YYYY-MM-DDTHH:MM:SS, maksimal 5 menit di masa lalu)
 $startTimeStr = $input['start_time'] ?? '';
@@ -49,7 +35,7 @@ if ($startDt < $fiveMinutesAgo) {
 
 // d. Validasi payment_method (Salah satu dari QRIS, Transfer Bank, Cash)
 $paymentMethod = $input['payment_method'] ?? '';
-$allowedMethods = ['QRIS', 'Transfer Bank', 'Cash'];
+$allowedMethods = ['QRIS', 'Cash'];
 if (!is_string($paymentMethod) || !in_array($paymentMethod, $allowedMethods, true)) {
     json_error('VALIDATION_ERROR', 'Metode pembayaran harus salah satu dari QRIS, Transfer Bank, atau Cash', 422);
 }
@@ -90,35 +76,14 @@ foreach ($rawItems as $index => $item) {
         );
     }
 
+    if (array_key_exists('package_id', $item)) {
+        json_error('VALIDATION_ERROR', 'Sistem tidak lagi menggunakan paket rental', 422);
+    }
+
     $durationDays = $item['duration_days'] ?? null;
-    $packageId = $item['package_id'] ?? null;
 
-    $hasDuration = $durationDays !== null;
-    $hasPackage = $packageId !== null;
-
-    if ($hasDuration === $hasPackage) {
-        json_error(
-            'VALIDATION_ERROR',
-            "Device ID {$deviceId} harus memilih tepat salah satu duration_days atau package_id",
-            422
-        );
-    }
-
-    if ($hasDuration
-        && (!is_int($durationDays) || $durationDays < 1 || $durationDays > 7)) {
-        json_error(
-            'VALIDATION_ERROR',
-            "duration_days untuk device ID {$deviceId} harus berupa bilangan bulat 1-7",
-            422
-        );
-    }
-
-    if ($hasPackage && (!is_int($packageId) || $packageId < 1)) {
-        json_error(
-            'VALIDATION_ERROR',
-            "package_id untuk device ID {$deviceId} harus berupa bilangan bulat minimal 1",
-            422
-        );
+    if (!is_int($durationDays) || $durationDays < 1 || $durationDays > 7) {
+        json_error('VALIDATION_ERROR', "Durasi untuk device ID {$deviceId} harus 1-7 hari", 422);
     }
 
     $deviceIds[] = $deviceId;
@@ -126,7 +91,6 @@ foreach ($rawItems as $index => $item) {
     $validatedItems[] = [
         'device_id' => $deviceId,
         'duration_days' => $durationDays,
-        'package_id' => $packageId,
     ];
 }
 
@@ -148,50 +112,68 @@ try {
 
     $pdo->beginTransaction();
 
-    $stmtNewUser = $pdo->prepare(
-        "INSERT INTO users (role, full_name, phone)
-               VALUES ('customer', :full_name, :phone) ON CONFLICT (phone) DO NOTHING"
-    );
-    $stmtNewUser->execute([
-        'full_name' => $fullName,
-        'phone' => $phone,
-    ]);
-
-    // a. Cari user berdasarkan nomor HP dan kunci barisnya (FOR UPDATE)
-    $stmtUser = $pdo->prepare("SELECT user_id, role 
-                               FROM users 
-                               WHERE phone = :phone 
+    $stmtUser = $pdo->prepare("SELECT user_id, role, full_name, phone, address, identity_doc_type, identity_doc_url, identity_doc_verified
+                               FROM users
+                               WHERE user_id = :customer_id
                                FOR UPDATE");
-    $stmtUser->execute(['phone' => $phone]);
+    $stmtUser->execute(['customer_id' => $customerId]);
     $user = $stmtUser->fetch();
 
-    if ($user) {
-        if ($user['role'] !== 'customer') {
-            $pdo->rollBack();
-            json_error('VALIDATION_ERROR', 'Nomor HP ini tidak dapat digunakan untuk pemesanan', 422);
-        }
-        $customerId = (int) $user['user_id'];
+    if (!$user || $user['role'] != 'customer') {
+        $pdo->rollBack();
+        json_error('FORBIDDEN', 'Akun tidak diizinkan melakukan pemesanan', 403);
+    }
 
-        // b. Cek batas pesanan aktif untuk customer yang sudah ada
-        $stmtActive = $pdo->prepare("SELECT COUNT(DISTINCT b.booking_id)
-                             FROM booking b
-                             JOIN rental r ON r.booking_id = b.booking_id
-                             WHERE b.customer_id = :customer_id
-                               AND r.rental_status IN ('Booked', 'Rented', 'Overdue')
-                               AND b.payment_status NOT IN ('Expired', 'Rejected', 'Cancelled')");
-        $stmtActive->execute(['customer_id' => $customerId]);
-        $activeBookings = (int) $stmtActive->fetchColumn();
+    // Pastikan profil data lengkap
+    if (trim((string) $user['full_name']) === '' || trim((string) $user['phone']) === '' || trim((string) $user['address']) === '') {
+        $pdo->rollBack();
+        json_error('PROFILE_INCOMPLETE', 'Lengkapi nama, nomor telepon, dan alamat sebelum checkout', 422);
+    }
 
-        if ($activeBookings >= $maxActiveBookings) {
-            $pdo->rollBack();
-            json_error(
-                'BOOKING_LIMIT_REACHED',
-                "Nomor HP ini sudah memiliki {$maxActiveBookings} pesanan aktif yang belum selesai",
-                429
-            );
-        }
-    } else {
-        throw new RuntimeException('Customer tidak ditemukan setelah diproses');
+    if (empty($user['identity_doc_type']) || empty($user['identity_doc_url'])) {
+        $pdo->rollBack();
+        json_error('IDENTITY_REQUIRED', 'Unggah dokumen identitas sebelum checkout', 422);
+    }
+
+    // Hanya boleh checkout setelah verifikasi identitas
+    $isVerified = filter_var($user['identity_doc_verified'], FILTER_VALIDATE_BOOLEAN);
+
+    if (!$isVerified) {
+        $pdo->rollBack();
+        json_error('IDENTITY_NOT_VERFIFIED', 'Dokumen identitas belum diverifikasi admin', 403);
+    }
+
+    // Ambil alamat profil pada saat checkout
+    $addressSnapshot = trim($user['address']);
+
+    // Batasi jumlah booking aktif
+    $stmtActive = $pdo->prepare(
+        "SELECT COUNT(DISTINCT b.booking_id)
+     FROM booking b
+     JOIN payment p
+        ON p.booking_id = b.booking_id
+     JOIN rental r
+        ON r.booking_id = b.booking_id
+     WHERE b.customer_id = :customer_id
+       AND r.rental_status IN (
+           'Booked', 'Rented', 'Overdue'
+       )
+       AND p.payment_status NOT IN (
+           'Expired', 'Rejected', 'Cancelled'
+       )
+       AND (
+           p.payment_status <> 'Pending'
+           OR p.payment_expires_at IS NULL
+           OR p.payment_expires_at > statement_timestamp()
+       )"
+    );
+
+    $stmtActive->execute(['customer_id' => $customerId]);
+    $activeBookings = (int) $stmtActive->fetchColumn();
+
+    if ($activeBookings >= $maxActiveBookings) {
+        $pdo->rollBack();
+        json_error('BOOKING_LIMIT_REACHED', "Pelanggan sudah memiliki {$maxActiveBookings} booking aktif", 429);
     }
 
     $paymentWindow = filter_var(
@@ -206,44 +188,57 @@ try {
 
     $windowMinutes = $paymentMethod === 'Cash' ? null : $paymentWindow;
 
-    $stmtBooking = $pdo->prepare(
-        "INSERT INTO booking (
-         customer_id, booking_channel, payment_method, payment_status
-     )
-     VALUES (:customer_id, 'Online', :payment_method, 'Pending')
-     RETURNING booking_id, booking_code"
-    );
+    $stmtBooking = $pdo->prepare("INSERT INTO booking (customer_id, booking_channel, address_snapshot)
+                                  VALUES (:customer_id, 'Online', :address_snapshot)
+                                  RETURNING booking_id, booking_code");
     $stmtBooking->execute([
         'customer_id' => $customerId,
-        'payment_method' => $paymentMethod
+        'address_snapshot' => $addressSnapshot,
     ]);
 
     $bookingRow = $stmtBooking->fetch();
+
+    if (!$bookingRow) {
+        throw new RuntimeException('Gagal membuat booking');
+    }
+
     $bookingId = (int) $bookingRow['booking_id'];
     $bookingCode = $bookingRow['booking_code'];
 
-    // Menyiapkan prepared statement untuk paket dan insert rental
-    $stmtGetPackage = $pdo->prepare("SELECT package_id, duration_hours, package_price 
-                                     FROM rental_package 
-                                     WHERE package_id = :package_id 
-                                       AND device_id = :device_id 
-                                       AND is_active = true");
-
-    $stmtInsertRental = $pdo->prepare(
-        'INSERT INTO rental (booking_id, device_id, package_id, start_time, duration_hours, end_time, price_per_day, total_cost) 
-               VALUES (
-                        :booking_id,
-                        :device_id,
-                        :package_id,
-                        :start_time,
-                        :duration_hours,
-                        :end_time,
-                        :price_per_day,
-                        :total_cost
-     )
-     RETURNING rental_status'
+    $stmtPayment = $pdo->prepare(
+        "INSERT INTO payment (booking_id, payment_method, payment_status, payment_expires_at)
+         VALUES (:booking_id, :payment_method, 'Pending', clock_timestamp() + CAST(:window AS INTEGER) * INTERVAL '1 minute')
+    RETURNING
+        payment_status,
+        to_char(
+            payment_expires_at,
+            'YYYY-MM-DD\"T\"HH24:MI:SSTZH:TZM'
+        ) AS payment_expires_at,
+        CASE
+            WHEN payment_expires_at IS NULL THEN NULL
+            ELSE GREATEST(
+                0,
+                CEIL(EXTRACT(EPOCH FROM (
+                    payment_expires_at - clock_timestamp()
+                )))
+            )::INTEGER
+        END AS seconds_left"
     );
 
+    $stmtPayment->bindValue(':booking_id', $bookingId, PDO::PARAM_INT);
+    $stmtPayment->bindValue(':payment_method', $paymentMethod, PDO::PARAM_STR);
+    $stmtPayment->bindValue(':window', $windowMinutes, $windowMinutes === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
+    $stmtPayment->execute();
+    $payment = $stmtPayment->fetch();
+
+    if (!$payment) {
+        throw new RuntimeException('Gagal membuat data pembayaran');
+    }
+
+    // Menyiapkan prepared statement untuk paket dan insert rental
+    $stmtInsertRental = $pdo->prepare("INSERT INTO rental (booking_id, device_id, start_time, duration_hours, end_time, price_per_day, total_cost)
+                                       VALUES (:booking_id, :device_id, :start_time, :duration_hours, :end_time, :price_per_day, :total_cost)
+                                       RETURNING rental_status");
     $responseItems = [];
     $grandTotal = 0;
 
@@ -269,36 +264,15 @@ try {
             json_error('DEVICE_OVERDUE', "Device dengan ID {$devId} masih belum dikembalikan oleh penyewa sebelumnya", 409);
         }
 
-        // 4) Hitung durasi, harga, dan end_time terlebih dahulu sebelum cek slot_is_free()
-        if ($item['package_id'] === null) {
-            $durationDays = $item['duration_days'];
-            $itemDuration = $durationDays * 24;
-            $pricePerDay = (float) $device['price_per_day'];
-            $itemTotal = $durationDays * $pricePerDay;
-            $packageId = null;
-        } else {
-            $stmtGetPackage->execute([
-                'package_id' => $item['package_id'],
-                'device_id' => $devId,
-            ]);
-            $package = $stmtGetPackage->fetch();
+        // Hitung harga sewa berdasarkan durasi harian.
+        $durationDays = $item['duration_days'];
+        $itemDuration = $durationDays * 24;
+        $pricePerDay = (float) $device['price_per_day'];
+        $itemTotal = $durationDays * $pricePerDay;
 
-            if (!$package) {
-                $pdo->rollBack();
-
-                json_error(
-                    'NOT_FOUND',
-                    'Paket tidak ditemukan atau tidak tersedia untuk device ini',
-                    404
-                );
-            }
-
-            $itemDuration = (int) $package['duration_hours'];
-            $durationDays = intdiv($itemDuration, 24);
-            $itemTotal = (float) $package['package_price'];
-            $packageId = (int) $package['package_id'];
-            $pricePerDay = null;
-        }
+        // Tentukan waktu selesai penyewaan.
+        $itemEndDt = $startDt->modify("+{$itemDuration} hours");
+        $itemEndTimeDb = $itemEndDt->format('Y-m-d H:i:sP');
 
         $itemEndDt = $startDt->modify("+{$itemDuration} hours");
         $itemEndTimeDb = $itemEndDt->format('Y-m-d H:i:sP');
@@ -310,15 +284,15 @@ try {
         }
 
         // 6) Insert baris rental
+
         $stmtInsertRental->execute([
             'booking_id' => $bookingId,
             'device_id' => $devId,
-            'package_id' => $packageId,
             'start_time' => $startTimedb,
             'duration_hours' => $itemDuration,
             'end_time' => $itemEndTimeDb,
             'price_per_day' => $pricePerDay,
-            'total_cost' => $itemTotal,
+            'total_cost' => $itemTotal
         ]);
 
         $rentalStatus = $stmtInsertRental->fetchColumn();
@@ -327,43 +301,16 @@ try {
 
         $responseItems[] = [
             'device_id' => $devId,
-            'package_id' => $packageId,
             'duration_days' => $durationDays,
             'duration_hours' => $itemDuration,
             'price_per_day' => $pricePerDay,
-            'end_time' => $itemEndDt->format('Y-m-d\TH:i:sP'),
+            'end_time' => $itemEndDt->format(
+                'Y-m-d\TH:i:sP'
+            ),
             'total_cost' => $itemTotal,
-            'rental_status' => $rentalStatus,
+            'rental_status' => $rentalStatus
         ];
-    }
 
-    $stmtPayment = $pdo->prepare(
-        "UPDATE booking
-     SET payment_expires_at =
-         clock_timestamp() + CAST(:window AS integer) * INTERVAL '1 minute'
-     WHERE booking_id = :booking_id
-     RETURNING payment_status,
-               to_char(
-                   payment_expires_at,
-                   'YYYY-MM-DD\"T\"HH24:MI:SSTZH:TZM'
-               ) AS payment_expires_at,
-               GREATEST(
-                   0,
-                   CEIL(EXTRACT(EPOCH FROM (
-                       payment_expires_at - clock_timestamp()
-                   )))
-               )::integer AS seconds_left"
-    );
-    $stmtPayment->bindValue(
-        ':window',
-        $windowMinutes, $windowMinutes === null ? PDO::PARAM_NULL : PDO::PARAM_INT
-    );
-    $stmtPayment->bindValue(':booking_id', $bookingId, PDO::PARAM_INT);
-    $stmtPayment->execute();
-    $payment = $stmtPayment->fetch();
-
-    if (!$payment) {
-        throw new RuntimeException('Deadline pembayaran gagal di proses');
     }
 
     // Menyelesaikan transaksi
@@ -390,6 +337,24 @@ try {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }
-    error_log("Booking Create API Error: " . $e->getMessage());
-    json_error('SERVER_ERROR', 'Terjadi kesalahan internal pada server', 500);
+
+    error_log(
+        "Booking Create API Error: " . $e->getMessage()
+    );
+
+    if (env('APP_ENV') === 'local') {
+        json_response([
+            'success' => false,
+            'code' => 'DEBUG_ERROR',
+            'message' => $e->getMessage(),
+            'file' => basename($e->getFile()),
+            'line' => $e->getLine()
+        ], 500);
+    }
+
+    json_error(
+        'SERVER_ERROR',
+        'Terjadi kesalahan internal pada server',
+        500
+    );
 }
