@@ -140,7 +140,7 @@ try {
 
     if (!$isVerified) {
         $pdo->rollBack();
-        json_error('IDENTITY_NOT_VERFIFIED', 'Dokumen identitas belum diverifikasi admin', 403);
+        json_error('IDENTITY_NOT_VERIFIED', 'Dokumen identitas belum diverifikasi admin', 403);
     }
 
     // Ambil alamat profil pada saat checkout
@@ -274,9 +274,6 @@ try {
         $itemEndDt = $startDt->modify("+{$itemDuration} hours");
         $itemEndTimeDb = $itemEndDt->format('Y-m-d H:i:sP');
 
-        $itemEndDt = $startDt->modify("+{$itemDuration} hours");
-        $itemEndTimeDb = $itemEndDt->format('Y-m-d H:i:sP');
-
         // 5) Cek apakah jadwal bentrok dengan rental lain yang belum Returned (409 SLOT_TAKEN)
         if (!slot_is_free($pdo, $devId, $startTimedb, $itemEndTimeDb)) {
             $pdo->rollBack();
@@ -337,24 +334,6 @@ try {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }
-
-    error_log(
-        "Booking Create API Error: " . $e->getMessage()
-    );
-
-    if (env('APP_ENV') === 'local') {
-        json_response([
-            'success' => false,
-            'code' => 'DEBUG_ERROR',
-            'message' => $e->getMessage(),
-            'file' => basename($e->getFile()),
-            'line' => $e->getLine()
-        ], 500);
-    }
-
-    json_error(
-        'SERVER_ERROR',
-        'Terjadi kesalahan internal pada server',
-        500
-    );
+    error_log("Booking Create API Error: " . $e->getMessage());
+    json_error('SERVER_ERROR', 'Terjadi kesalahan internal pada server', 500);
 }
