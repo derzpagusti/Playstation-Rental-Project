@@ -1,309 +1,399 @@
+
 /*
- * Order Form page.
- * Requires js/shared/session.js, validation.js, image.js and orders.js.
- *
- * Flow: pick a unit -> pick a duration (max 7 days) -> summary appears ->
- * Checkout reserves the stock and opens the payment page (5 minute timer).
+ * NovaPS - Order Form
+ * Integrasi frontend lokal dengan backend PHP.
  */
 (function () {
-  var PRODUCTS = NovaPS.PRODUCTS;
-  var CUSTOMER_FIELDS = ["fullname", "phone", "address", "email"];
+  const API_BASE = "/playstation/backend/public/api";
 
-  // A user may only have one unpaid order: send them home, where the
-  // "complete your payment" pop-up explains it.
-  if (NovaPS.orders.unpaid()) {
-    location.replace("../index.html");
+  const form = document.getElementById("order-form");
+  const unitsEl = document.getElementById("units");
+  const template = document.getElementById("unit-template");
+  const addWrap = document.getElementById("add-unit-wrap");
+  const checkout = document.getElementById("checkout");
+  const hint = document.getElementById("checkout-hint");
+  const formError = document.getElementById("form-error");
+  const summary = document.getElementById("summary");
+  const summaryRows = document.getElementById("summary-rows");
+
+  if (!form || !template) {
+    console.error("Elemen Order Form tidak lengkap.", {
+      form,
+      template
+    });
     return;
   }
-  // Overdue rental: no new orders until the unit is returned or extended
-  if (NovaPS.rentals.overdue().length) {
-    location.replace("time-remaining.html");
-    return;
-  }
 
-  function $(id) {
-    return document.getElementById(id);
-  }
+  const blocks = [];
 
-  var form = $("order-form");
-  var unitsEl = $("units");
-  var template = $("unit-template");
-  var addWrap = $("add-unit-wrap");
-  var summary = $("summary");
-  var checkout = $("checkout");
-  var hint = $("checkout-hint");
-  var formError = $("form-error");
-  var upload = form.querySelector("[data-upload]");
-  var idInput = $("idcard");
-  var profile = NovaPS.profile.get();
-  var blocks = [];
+  // Informasi customer hanya untuk tampilan.
+  // Backend mengambil data customer dari session PHP.
 
-  /* ---------- customer information (from the account) ---------- */
+  const customer = JSON.parse(
+      sessionStorage.getItem("novaps_customer") || "null"
+  );
 
-  CUSTOMER_FIELDS.forEach(function (key) {
-    var input = $(key);
-    input.value = profile[key] || "";
-    input.readOnly = !!input.value; // filled in from My Profile = locked
-  });
+  const customerSection = form.querySelector("section");
 
-  if (profile.idcard) {
-    upload.querySelector("img").src = profile.idcard;
-    upload.setAttribute("data-has-image", "");
-    idInput.disabled = true;
-    idInput.removeAttribute("data-validate");
-  }
+  if (customerSection && customer) {
+    const profileFields = {
+      fullname: customer.full_name || "",
+      phone: customer.phone || "",
+      address: customer.address || "",
+      email: customer.email || ""
+    };
 
-  function customerComplete() {
-    var ok = CUSTOMER_FIELDS.every(function (key) {
-      var input = $(key);
-      return (
-        NovaPS.rules[input.dataset.validate](input.value, input, form) === ""
-      );
+    Object.entries(profileFields).forEach(([id, value]) => {
+      const input = document.getElementById(id);
+
+      if (!input) return;
+
+      input.value = value;
+      input.readOnly = true;
+      input.placeholder = value
+          ? ""
+          : "Data belum tersedia dari backend";
+
+      // Data profil tidak diedit saat checkout.
+      input.removeAttribute("data-validate");
     });
-    return ok && (!!profile.idcard || !!idInput.files[0]);
+
+    const idInput = document.getElementById("idcard");
+    const upload = customerSection.querySelector("[data-upload]");
+    const customerHint = document.getElementById("customer-hint");
+
+    if (idInput) {
+      idInput.disabled = true;
+      idInput.removeAttribute("data-validate");
+    }
+
+    if (upload) {
+      upload.style.display = "none";
+    }
+
+    if (customerHint) {
+      customerHint.textContent =
+          customer.identity_doc_verified
+              ? "Identitas sudah diverifikasi. Data profil diambil dari akun customer."
+              : "Identitas belum diverifikasi. Checkout belum dapat dilakukan.";
+    }
   }
 
-  CUSTOMER_FIELDS.forEach(function (key) {
-    var input = $(key);
-    input.addEventListener("input", function () {
-      if (input.closest("[data-field]").hasAttribute("data-invalid"))
-        NovaPS.checkField(input, form);
-      refresh();
-    });
-    input.addEventListener("blur", function () {
-      if (!input.readOnly) NovaPS.checkField(input, form);
-    });
-  });
 
-  idInput.addEventListener("change", function () {
-    var file = idInput.files[0];
-    var isImage = !!file && /^image\//.test(file.type);
-    if (isImage) upload.querySelector("img").src = URL.createObjectURL(file);
-    upload.toggleAttribute("data-has-image", isImage);
-    NovaPS.checkField(idInput, form);
-    refresh();
-  });
+  function showMessage(message) {
+    formError.textContent = message;
+    formError.style.whiteSpace = "pre-line";
+  }
 
-  /* ---------- unit blocks (1 or 2 units) ---------- */
+  async function getAPI(path) {
+    const response = await fetch(`${API_BASE}/${path}`, {
+      credentials: "same-origin",
+      cache: "no-store"
+    });
+
+    const result = await response.json();
+
+    if (!response.ok || result.success !== true) {
+      throw new Error(result.message || "Gagal mengambil data.");
+    }
+
+    return result.data;
+  }
+
+  async function postAPI(path, body) {
+    const response = await fetch(`${API_BASE}/${path}`, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(body)
+    });
+
+    const result = await response.json();
+
+    if (!response.ok || result.success !== true) {
+      throw new Error(result.message || "Checkout gagal.");
+    }
+
+    return result.data;
+  }
 
   function unitOf(block) {
-    var radio = block.querySelector("input:checked");
-    return radio ? radio.value : "";
+    const selected = block.querySelector(
+        'input[type="radio"]:checked'
+    );
+
+    return selected ? selected.value : "";
   }
 
   function daysOf(block) {
-    return Number(block.querySelector("[data-duration]").value) || 0;
+    return Number(
+        block.querySelector("[data-duration]").value
+    );
+  }
+
+
+  function getCurrentWIB() {
+    const parts = new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Asia/Jakarta",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hourCycle: "h23"
+    }).formatToParts(new Date());
+
+    const values = Object.fromEntries(
+        parts.map(part => [part.type, part.value])
+    );
+
+    return (
+        `${values.year}-${values.month}-${values.day}` +
+        `T${values.hour}:${values.minute}:${values.second}`
+    );
   }
 
   function renumber() {
-    blocks.forEach(function (block, i) {
+    blocks.forEach((block, index) => {
       block.querySelector("[data-unit-title]").textContent =
-        blocks.length > 1 ? "Select a Unit #" + (i + 1) : "Select a Unit";
-      block.querySelector("[data-remove-unit]").hidden = i === 0; // the first unit stays
-      block.querySelectorAll('input[type="radio"]').forEach(function (radio) {
-        radio.name = "unit-" + (i + 1);
-      });
+          blocks.length > 1
+              ? `Select a Unit #${index + 1}`
+              : "Select a Unit";
+
+      block.querySelector("[data-remove-unit]").hidden =
+          index === 0;
+
+      block.querySelectorAll('input[type="radio"]').forEach(
+          radio => {
+            radio.name = `unit-${index + 1}`;
+          }
+      );
     });
-    addWrap.hidden = blocks.length >= NovaPS.MAX_UNITS;
+
+    addWrap.hidden = blocks.length >= 2;
   }
 
   function addBlock() {
-    var block = template.content.firstElementChild.cloneNode(true);
+    const block = template.content.firstElementChild.cloneNode(true);
+
     unitsEl.appendChild(block);
     blocks.push(block);
+
     block.addEventListener("change", refresh);
-    block
-      .querySelector("[data-remove-unit]")
-      .addEventListener("click", function () {
-        blocks.splice(blocks.indexOf(block), 1);
-        block.remove();
-        renumber();
-        refresh();
-      });
+
+    block.querySelector("[data-remove-unit]").addEventListener(
+        "click",
+        () => {
+          const index = blocks.indexOf(block);
+
+          blocks.splice(index, 1);
+          block.remove();
+
+          renumber();
+          refresh();
+        }
+    );
+
     renumber();
     refresh();
+
     return block;
   }
 
-  $("add-unit").addEventListener("click", function () {
-    addBlock().querySelector("input").focus();
-  });
+  document.getElementById("add-unit").addEventListener(
+      "click",
+      () => addBlock()
+  );
 
-  /* ---------- refresh everything that depends on the choices ---------- */
+  // Harga hanya estimasi untuk tampilan.
+  // Total pembayaran resmi dihitung backend.
+  const prices = {
+    ps4: 50000,
+    ps5: 100000
+  };
 
   function refresh() {
-    var stock = {};
-    Object.keys(PRODUCTS).forEach(function (unit) {
-      stock[unit] = NovaPS.stock.get(unit);
-    });
-    form.querySelectorAll("[data-price]").forEach(function (el) {
-      el.textContent = NovaPS.money(PRODUCTS[el.dataset.price].price) + "/day";
-    });
-    var selected = blocks.map(unitOf);
-    var stockProblem = false;
+    const items = blocks.map(block => ({
+      unit: unitOf(block),
+      days: daysOf(block)
+    }));
 
-    blocks.forEach(function (block, i) {
-      var others = selected.filter(function (unit, j) {
-        return j !== i;
+    form.querySelectorAll("[data-price]").forEach(el => {
+      el.textContent =
+          NovaPS.money(prices[el.dataset.price]) + "/day";
+    });
+
+    blocks.forEach(block => {
+      const selected = unitOf(block);
+      const duration = block.querySelector("[data-duration]");
+
+      duration.disabled = !selected;
+
+      block.querySelectorAll("[data-available]").forEach(label => {
+        label.textContent = "Check availability at checkout";
+        label.className = "shrink-0 text-slate-500";
       });
-      var errors = "";
-
-      block.querySelectorAll('input[type="radio"]').forEach(function (radio) {
-        var unit = radio.value;
-        var used = others.filter(function (u) {
-          return u === unit;
-        }).length;
-        var left = stock[unit] - used;
-        var label = radio.closest("label").querySelector("[data-available]");
-
-        label.textContent = left > 0 ? "Available: " + left : "Sold out";
-        label.className =
-          "shrink-0 " +
-          (left <= 0
-            ? "text-red-600"
-            : left <= NovaPS.LOW_STOCK
-              ? "text-yellow-600"
-              : "text-slate-800");
-        radio.disabled = left <= 0 && !radio.checked;
-        if (radio.checked && left < 1) {
-          errors = "Not enough " + PRODUCTS[unit].name + " in stock.";
-          stockProblem = true;
-        }
-      });
-
-      // The duration can only be chosen after a unit is picked
-      var select = block.querySelector("[data-duration]");
-      select.disabled = !selected[i];
-      if (!selected[i]) select.value = "";
-      block.querySelector("[data-block-error]").textContent = errors;
     });
 
-    // Order summary: only units that have both a unit and a duration
-    var items = [];
-    blocks.forEach(function (block) {
-      var unit = unitOf(block);
-      var days = daysOf(block);
-      if (unit && days)
-        items.push({
-          unit: unit,
-          days: days,
-          price: PRODUCTS[unit].price * days,
-        });
-    });
+    const validItems = items.filter(item =>
+        item.unit &&
+        Number.isInteger(item.days) &&
+        item.days >= 1 &&
+        item.days <= 7
+    );
 
-    summary.hidden = items.length === 0;
-    if (items.length) {
-      var total = items.reduce(function (sum, item) {
-        return sum + item.price;
-      }, 0);
+    summary.hidden = validItems.length === 0;
+
+    if (validItems.length) {
+      const total = validItems.reduce(
+          (sum, item) =>
+              sum + prices[item.unit] * item.days,
+          0
+      );
+
       NovaPS.renderRows(
-        $("summary-rows"),
-        NovaPS.summaryRows({
-          customer: {
-            fullname: $("fullname").value.trim() || "-",
-            address: $("address").value.trim() || "-",
-          },
-          items: items,
-          total: total,
-        }),
+          summaryRows,
+          NovaPS.summaryRows({
+            customer: {
+              fullname: customer?.full_name || "-",
+              address: "Dari profil database"
+            },
+            items: validItems.map(item => ({
+              unit: item.unit,
+              days: item.days,
+              price: prices[item.unit] * item.days
+            })),
+            total
+          })
       );
     }
 
-    // Checkout button + the reason why it is still disabled
-    var message = "";
-    if (
-      blocks.some(function (b) {
-        return !unitOf(b);
-      })
-    )
-      message = "Select a unit to continue.";
-    else if (
-      blocks.some(function (b) {
-        return !daysOf(b);
-      })
-    )
-      message = "Choose a rental duration to continue.";
-    else if (stockProblem)
-      message = "Change a unit: there is not enough stock.";
-    else if (!customerComplete())
-      message = "Complete your customer information to continue.";
+    const valid =
+        items.length > 0 &&
+        items.length === validItems.length;
 
-    checkout.disabled = !!message;
-    hint.textContent = message;
+    checkout.disabled = !valid;
+
+    hint.textContent = !valid
+        ? "Pilih PS dan durasi penyewaan."
+        : "Waktu mulai sewa akan dihitung otomatis saat Checkout.";
   }
 
-  /* ---------- checkout ---------- */
+  // Cari device_id nyata dari database.
+  async function resolveItems(startTime) {
+    const usedIds = new Set();
+    const result = [];
 
-  function showError(text) {
-    formError.textContent = text;
-  }
+    for (const block of blocks) {
+      const category = unitOf(block).toUpperCase();
+      const durationDays = daysOf(block);
 
-  form.addEventListener("submit", function (e) {
-    e.preventDefault();
-    showError("");
-
-    var ok = true;
-    [].slice
-      .call(form.querySelectorAll("[data-validate]"))
-      .forEach(function (el) {
-        if (!el.disabled && !NovaPS.checkField(el, form)) ok = false;
+      const params = new URLSearchParams({
+        start_time: startTime,
+        duration_days: String(durationDays),
+        category
       });
-    if (!ok || checkout.disabled) return;
+
+      console.log("GET devices/available.php", params.toString());
+
+      const devices = await getAPI(
+          `devices/available.php?${params.toString()}`
+      );
+
+      const device = devices.find(
+          item => !usedIds.has(Number(item.device_id))
+      );
+
+      if (!device) {
+        throw new Error(
+            `Tidak ada ${category} yang tersedia pada jadwal ini.`
+        );
+      }
+
+      usedIds.add(Number(device.device_id));
+
+      result.push({
+        device_id: Number(device.device_id),
+        duration_days: durationDays
+      });
+    }
+
+    return result;
+  }
+
+  form.addEventListener("submit", async event => {
+    event.preventDefault();
+
+    console.log("CHECKOUT TERPANGGIL");
+    showMessage("");
+
+    if (checkout.disabled) return;
 
     checkout.disabled = true;
-    checkout.textContent = "Please wait…";
+    checkout.textContent = "Creating booking...";
 
-    var customer = {
-      fullname: $("fullname").value.trim(),
-      phone: $("phone").value.trim(),
-      address: $("address").value.trim(),
-      email: $("email").value.trim(),
-    };
-    var items = blocks.map(function (block) {
-      return { unit: unitOf(block), days: daysOf(block) };
-    });
-    var file = idInput.files[0];
-    var idPromise =
-      file && !profile.idcard
-        ? NovaPS.imageToDataUrl(file, 900)
-        : Promise.resolve(profile.idcard || "");
+    try {
+      const checkTime = getCurrentWIB();
 
-    idPromise
-      .then(function (idcard) {
-        // Remember the details for next time (and for My Profile)
-        var patch = Object.assign({}, customer);
-        if (idcard) patch.idcard = idcard;
-        NovaPS.profile.set(patch);
+      console.log("Waktu pengecekan:", checkTime);
 
-        // TODO: send the order to the backend API. The server must reserve the stock.
-        var order = NovaPS.orders.create({
-          customer: customer,
-          items: items,
-          notes: $("notes").value.trim(),
-        });
-        location.href = "payment.html?order=" + encodeURIComponent(order.id);
-      })
-      .catch(function (err) {
-        showError(err.message);
-        checkout.textContent = "Checkout";
-        refresh();
-      });
+      const items = await resolveItems(checkTime);
+
+      console.log("Device terpilih:", items);
+
+      const booking = await postAPI(
+          "bookings/create.php",
+          {
+            payment_method: "QRIS",
+            items
+          }
+      );
+
+      console.log("BOOKING BERHASIL:", booking);
+
+      showMessage(
+          `Booking berhasil!\n` +
+          `Kode booking: ${booking.booking_code}\n` +
+          `Total: ${NovaPS.money(booking.total_cost)}\n` +
+          `Status: ${booking.payment.status}`
+      );
+
+      checkout.textContent = "Booking Created";
+      checkout.disabled = true;
+
+      // Tidak diarahkan ke payment.html dulu,
+      // karena halaman pembayaran masih memakai localStorage.
+
+    } catch (error) {
+      console.error("CHECKOUT ERROR:", error);
+
+      showMessage(error.message);
+
+      checkout.disabled = false;
+      checkout.textContent = "Checkout";
+    }
   });
 
-  /* ---------- start ---------- */
+  const first = addBlock();
 
-  var first = addBlock();
+  const wanted = new URLSearchParams(
+      location.search
+  ).get("unit");
 
-  // "Choose & Rent" on the home page sends ?unit=ps4 or ?unit=ps5
-  var wanted = new URLSearchParams(location.search).get("unit");
-  if (wanted && PRODUCTS[wanted]) {
-    var radio = first.querySelector('input[value="' + wanted + '"]');
-    if (radio && !radio.disabled) {
+  if (wanted === "ps4" || wanted === "ps5") {
+    const radio = first.querySelector(
+        `input[value="${wanted}"]`
+    );
+
+    if (radio) {
       radio.checked = true;
-      refresh();
-      first.querySelector("[data-duration]").focus();
     }
   }
 
-  window.addEventListener("pageshow", refresh);
+  refresh();
+
+  console.log("Order Form API integration loaded.");
 })();

@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="../css/login.css" />
     <script src="../js/shared/session.js"></script>
     <script src="../js/shared/validation.js" defer></script>
-    <script src="../js/login.js" defer></script>
+    <script src="../js/login.js?v=2" defer></script>
   </head>
   <body class="min-h-screen bg-slate-50 text-slate-800">
     <header class="h-[68px] bg-slate-900">
@@ -70,14 +70,17 @@
         </p>
         <form id="login-form" novalidate>
           <div data-field class="group/field mb-2.5">
-            <label for="email" class="mb-0.5 block text-base">Email</label>
+            <label for="phone" class="mb-0.5 block text-base">
+              Phone Number
+            </label>
             <input
-              type="email"
-              id="email"
-              name="email"
-              autocomplete="email"
-              data-validate="email"
-              class="h-8 w-full rounded-md border border-slate-200 bg-slate-50 px-2.5 text-sm transition-all duration-150 hover:border-indigo-300 focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-[3px] focus:ring-indigo-500/20 group-data-[invalid]/field:border-red-600"
+                    type="tel"
+                    id="phone"
+                    name="phone"
+                    autocomplete="tel"
+                    placeholder="081234567890"
+                    data-validate="phone"
+                    class="h-8 w-full rounded-md border border-slate-200 bg-slate-50 px-2.5 text-sm transition-all duration-150 hover:border-indigo-300 focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-[3px] focus:ring-indigo-500/20 group-data-[invalid]/field:border-red-600"
             />
             <p
               data-error
