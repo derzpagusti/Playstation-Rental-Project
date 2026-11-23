@@ -1,4 +1,0 @@
-/* pages/signup.html -> builds to css/signup.css */
-@import "tailwindcss" source(none);
-@import "./partials/shared.css";
-@source "../pages/signup.html";

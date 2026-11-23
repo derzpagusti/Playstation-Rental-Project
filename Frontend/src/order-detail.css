@@ -1,9 +1,0 @@
-/* pages/order-detail.html -> builds to css/order-detail.css */
-@import "tailwindcss" source(none);
-@import "./partials/shared.css";
-@import "./partials/navbar.css";
-@source "../pages/order-detail.html";
-@source "../js/order-detail.js";
-@source "../js/shared/orders.js";
-@source "../js/shared/rental-alerts.js";
-@source "../js/shared/cancel-order.js";
