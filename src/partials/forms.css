@@ -1,0 +1,34 @@
+/*
+ * Form inputs shared by My Profile, Order Form, Extend and admin pages.
+ * Locked (read-only) text boxes are grey, editable ones are white with a
+ * focus ring, and drop-downs always look clickable.
+ */
+
+@layer components {
+  .field-input {
+    @apply h-8 w-full rounded-md border border-slate-300 bg-white px-2.5 text-sm text-slate-800;
+    @apply transition-all duration-150 placeholder:text-slate-400;
+    @apply hover:border-indigo-300;
+    @apply focus:border-indigo-500 focus:ring-[3px] focus:ring-indigo-500/20 focus:outline-none;
+    @apply disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400;
+    @apply group-data-[invalid]/field:border-red-600;
+
+    /*
+     * Locked text boxes (readonly) are grey. A <select> ALSO matches
+     * :read-only in browsers, so it is left out on purpose: it must not look
+     * like it cannot be clicked.
+     */
+    &:is(input, textarea):read-only {
+      @apply cursor-default border-slate-200 bg-slate-100 text-slate-500;
+    }
+    &:is(input, textarea):read-only:hover,
+    &:is(input, textarea):read-only:focus {
+      @apply border-slate-200 ring-0;
+    }
+  }
+
+  /* Drop-down: white, pointer cursor and an indigo border = clearly clickable */
+  select.field-input:enabled {
+    @apply cursor-pointer border-indigo-300 bg-white text-slate-800 hover:border-indigo-500;
+  }
+}

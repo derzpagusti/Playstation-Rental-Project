@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Admin Login - NovaPS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/admin-login.css" />
+    <script src="../js/shared/session.js"></script>
+    <script src="../js/shared/admin.js"></script>
+    <script src="../js/shared/validation.js" defer></script>
+    <script src="../js/admin-login.js" defer></script>
+  </head>
+  <body
+    class="grid min-h-screen place-items-center bg-slate-900 p-4 text-slate-800"
+  >
+    <main class="w-[360px] max-w-full">
+      <div class="mb-6 flex justify-center">
+        <a
+          href="../index.html"
+          aria-label="NovaPS"
+          class="group flex items-center gap-2.5 font-display text-2xl font-bold text-white transition-transform duration-150 active:scale-95"
+        >
+          <span
+            class="grid size-[30px] place-items-center rounded-[7px] bg-cyan-400 transition-transform duration-300 ease-[cubic-bezier(.3,1.6,.5,1)] group-hover:-rotate-[8deg] group-hover:scale-110"
+            ><svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#0f172a"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <rect x="2" y="6" width="20" height="12" rx="3" />
+              <path d="M6 12h4M8 10v4" />
+              <circle cx="15.5" cy="11" r=".6" />
+              <circle cx="17.5" cy="13" r=".6" /></svg
+          ></span>
+          Nova<span class="text-cyan-400">PS</span>
+        </a>
+      </div>
+      <section class="rounded-lg bg-white p-6">
+        <h1 class="text-center font-display text-[28px] font-bold text-black">
+          Admin Login
+        </h1>
+        <p class="mt-1 mb-4 text-center text-slate-500">
+          Only for NovaPS staff
+        </p>
+        <form id="admin-login-form" novalidate>
+          <div data-field class="group/field mb-2.5">
+            <label for="email" class="mb-0.5 block text-base">Email</label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              autocomplete="username"
+              data-validate="email"
+              class="field-input h-10"
+            />
+            <p
+              data-error
+              role="alert"
+              class="mt-0.5 text-[11px] text-red-600 empty:hidden"
+            ></p>
+          </div>
+          <div data-field class="group/field mb-2.5">
+            <label for="password" class="mb-0.5 block text-base"
+              >Password</label
+            >
+            <input
+              type="password"
+              id="password"
+              name="password"
+              autocomplete="current-password"
+              data-validate="required"
+              class="field-input h-10"
+            />
+            <p
+              data-error
+              role="alert"
+              class="mt-0.5 text-[11px] text-red-600 empty:hidden"
+            ></p>
+          </div>
+          <button
+            type="submit"
+            class="btn btn-indigo mt-4 h-12 w-full p-0 text-xl disabled:cursor-wait disabled:opacity-80"
+          >
+            Login
+          </button>
+        </form>
+        <a
+          href="../index.html"
+          class="mt-4 block text-center text-xs text-blue-600 underline underline-offset-[3px] transition-all duration-150 hover:text-blue-700 hover:underline-offset-[5px]"
+          >Back to website</a
+        >
+      </section>
+    </main>
+  </body>
+</html>
